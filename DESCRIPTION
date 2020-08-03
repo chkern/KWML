@@ -1,11 +1,21 @@
 Package: KWML
 Type: Package
-Title: 
+Title: Boosted Kernel Weighting
 Version: 0.1.0
-Author: 
+Authors@R: 
+    c(person(given = "Lingxiao",
+             family = "Wang",
+             role = c("aut", "cre"),
+             email = "wanglx89@umd.edu")),
+      person(given = "Christoph",
+             family = "Kern",
+             role = c("aut", "cre"),
+             email = "c.kern@uni-mannheim.de"))
 Maintainer: 
-Description: 
-    
+Description: R package for "Boosted Kernel Weighting - Using Statistical Learning to Improve
+    Inference from Nonprobability Samples"
 License: 
+Imports:
+    survey
 Encoding: UTF-8
 LazyData: true
