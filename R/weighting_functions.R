@@ -230,7 +230,6 @@ kw.mob = function(psa_dat, wt, tune_maxdepth, formula, svy.wt, rsp_name, covars,
     psa_dat$wt_kw[psa_dat$trt == 1] <- kw_tmp[,i]
     smds[i+1] <- mean(abs(bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat$wt_kw,
                                   s.d.denom = "pooled", binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
-    # Save KW weights of current iteration
     # Check improvement in covariate balance
     if (abs(smds[i] - smds[i+1]) < 0.001 | length(tune_maxdepth) == i) break
   }
@@ -273,6 +272,8 @@ kw.crf = function(psa_dat, wt, tune_mincriterion, formula, svy.wt, rsp_name, cov
   p_score_c.tmp <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = n_c))
   p_score_s.tmp <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = n_s))
   smds <- rep(NA, length(tune_mincriterion))
+  smds[1] <- mean(abs(bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat[, wt],
+                              s.d.denom = "pooled", binary = "std", method="weighting")$Balance[, "Diff.Adj"]))
   kw_tmp = as.data.frame(matrix(0, n_c, length(tune_mincriterion)))
   # Loop over try-out values
   for (i in seq_along(tune_mincriterion)){
@@ -289,7 +290,7 @@ kw.crf = function(psa_dat, wt, tune_mincriterion, formula, svy.wt, rsp_name, cov
                         svy.wt = svy.wt, Large=F)$pswt
     # Calculate covariate balance
     psa_dat$wt_kw[psa_dat$trt == 1] <- kw_tmp[,i]
-      smds[i] <- mean(abs(bal.tab(psa_dat[, covars], treat = psa_dat$trt, weights = psa_dat$wt_kw,
+    smds[i+1] <- mean(abs(bal.tab(psa_dat[, covars], treat = psa_dat$trt, weights = psa_dat$wt_kw,
                                   s.d.denom = "pooled", binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
     }
 
@@ -329,14 +330,17 @@ kw.gbm = function(psa_dat, wt, tune_idepth, tune_ntree, formula, svy.wt, rsp_nam
   psa_dat$wt_kw.tmp <- psa_dat[, wt]
   n_c = sum(psa_dat[, rsp_name]==1)
   n_s = sum(psa_dat[, rsp_name]==0)
-  p_score_o_c <- data.frame(matrix(ncol = length(tune_idepth), nrow = n_c))
-  p_score_o_s <- data.frame(matrix(ncol = length(tune_idepth), nrow = n_s))
+  p_score_c.tmp <- data.frame(matrix(ncol = length(tune_idepth), nrow = n_c))
+  p_score_s.tmp <- data.frame(matrix(ncol = length(tune_idepth), nrow = n_s))
   p_scores_i  <- data.frame(matrix(ncol = length(tune_ntree),  nrow = nrow(psa_dat)))
   p_score_i_s <- data.frame(matrix(ncol = length(tune_ntree),  nrow = n_c))
   p_score_i_c <- data.frame(matrix(ncol = length(tune_ntree),  nrow = n_s))
   smds_o <- rep(NA, length(tune_idepth))
   smds_i <- rep(NA, length(tune_ntree)+1)
-  smds_i[1] <- mean(abs(tab_pre_adjust$Balance[, "Diff.Adj"]))
+  smds_i[1] <- mean(abs(bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat[, wt],
+                                s.d.denom = "pooled", binary = "std", method="weighting")$Balance[, "Diff.Adj"]))
+  kw_tmp_o = as.data.frame(matrix(0, n_c, length(tune_idepth)))
+  kw_tmp_i = as.data.frame(matrix(0, n_c, length(tune_ntree)))
   # Outer loop over try-out values
   for (i in seq_along(tune_idepth)){
     #print(i)
@@ -357,23 +361,27 @@ kw.gbm = function(psa_dat, wt, tune_idepth, tune_ntree, formula, svy.wt, rsp_nam
       p_score_i_c[, j] <- p_scores_i[psa_dat$trt == 1, j]
       p_score_i_s[, j] <- p_scores_i[psa_dat$trt == 0, j]
       # Calculate KW weights
-      samp.c$kw <- kw.wt(p_score.c = p_score_i_c[, j], p_score.s = p_score_i_s[,j],
+      kw_tmp_i[, j] <- kw.wt(p_score.c = p_score_i_c[, j], p_score.s = p_score_i_s[,j],
                          svy.wt = samp.s$wt, Large=F)$pswt
       # Calculate covariate balance
       psa_dat$wt_kw[psa_dat$trt == 1] <- samp.c$kw
       smds_i[j+1] <- mean(abs(bal.tab(psa_dat[, covars], treat = psa_dat$trt, weights = psa_dat$wt_kw, s.d.denom = "pooled",
                                       binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
-      # Save KW weights of current iteration
-      names(samp.c)[dim(samp.c)[2]] <- paste0("kw.gbm.i", j)
       # Check improvement in covariate balance
       if (abs(smds_i[j] - smds_i[j+1]) < 0.001 | length(tune_ntree) == j){
         print(paste0("gbm", j))
         break
       }
     }
+    # Select best KW weights of current iteration
+    best <- which.min(smds_i[2:(length(tune_ntree)+1)])
+    p_score_c.tmp[,i] <- p_score_i_c[, best]
+    p_score_s.tmp[,i] <- p_score_i_s[, best]
+    kw_tmp_o[,i] = kw_tmp_i[, best]
+    smds_o[i] <- min(smds_i[2:(length(tune_ntree)+1)], na.rm = T)
   }
 
-  return(list(kw_tmp = kw_tmp, smds = smds, p_score_c.tmp = p_score_c.tmp, p_score_s.tmp = p_score_s.tmp))
+  return(list(kw_tmp = kw_tmp_o, smds = smds_o, p_score_c.tmp = p_score_c.tmp, p_score_s.tmp = p_score_s.tmp))
 }
 
 
