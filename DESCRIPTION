@@ -17,5 +17,8 @@ Description: R package for "Boosted Kernel Weighting - Using Statistical Learnin
 License: 
 Imports:
     survey
+    cobalt
+    partykit
+    gbm
 Encoding: UTF-8
 LazyData: true
