@@ -301,7 +301,8 @@ kw.crf = function(psa_dat, wt, tune_mincriterion, formula, svy.wt, rsp_name, cov
 ## kw.gbm is a function calculating KW pseudo weights using Gradient Tree Boosting
 ##        method to predict propensity scores ##
 ## INPUT:  psa_dat  - dataframe of the combined cohort and survey sample                            ##
-##         tune_mtry - tunning parameter(s)                                                         ##
+##         tune_idepth - tuning parameter(s)
+##         tune_ntree - tuning parameter(s)
 ##         wt       - name of the weight variable in psa_dat                                        ##
 ##                    (common weights of 1 for cohort, and sample weights for survey)               ##
 ##         formula  - formula of the propensity model                                               ##
@@ -370,6 +371,7 @@ kw.gbm = function(psa_dat, wt, tune_idepth, tune_ntree, formula, svy.wt, rsp_nam
         break
       }
     }
+  }
 
   return(list(kw_tmp = kw_tmp, smds = smds, p_score_c.tmp = p_score_c.tmp, p_score_s.tmp = p_score_s.tmp))
 }
@@ -476,7 +478,7 @@ cmb_dat1 = function(chtsamp,svysamp,svy_wt, Formula){
   cmb_dat = rbind(chtsamp_sub, svysamp_sub)  # combine the two samples
   cmb_dat$wt = c(rep(1, m), svy_wt.vec)
   cmb_dat
-  }
+}
 
 ### Kernels ##
 # triangular density on (-3, 3)

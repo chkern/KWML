@@ -6,19 +6,18 @@ Authors@R:
     c(person(given = "Lingxiao",
              family = "Wang",
              role = c("aut", "cre"),
-             email = "wanglx89@umd.edu")),
+             email = "wanglx89@umd.edu"),
       person(given = "Christoph",
              family = "Kern",
-             role = c("aut", "cre"),
+             role = "aut",
              email = "c.kern@uni-mannheim.de"))
-Maintainer: 
 Description: R package for "Boosted Kernel Weighting - Using Statistical Learning to Improve
     Inference from Nonprobability Samples"
-License: 
+License: GPL-2
 Imports:
-    survey
-    cobalt
-    partykit
+    survey,
+    cobalt,
+    partykit,
     gbm
 Encoding: UTF-8
 LazyData: true
