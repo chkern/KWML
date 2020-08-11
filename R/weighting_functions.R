@@ -1,86 +1,55 @@
-#################################################################################################
-## ipsw.wt is a function calculating pseudo weights using IPSW methods                         ##
-## INPUT:  psa_dat  - dataframe of the combined cohort and survey sample                       ##
-##         wt       - name of the weight variable in psa_dat                                   ##
-##                    (common weights of 1 for cohort, and sample weights for survey)          ##
-##         rsp_name - name of the cohort membership indicator in psa_dat                       ##
-##         formula  - formula of the regression model                                          ##
-## OUTPUT: a vector of IPSW pseudo weights                                                     ##
-#################################################################################################
+#' Calculate pseudo-weights using IPSW
+#'
+#' This function computes IPSW pseudo-weights using logistic regression to
+#' predict propensity scores.
+#'
+#' @param psa_dat Dataframe of the combined non-probability and probability sample
+#' @param wt Name of the weight variable in psa_dat
+#' (common weights of 1 for non-probability sample, and survey weights for probability sample)
+#' @param rsp_name Name of the non-probability sample membership indicator in psa_dat
+#' (1 for non-probability sample units, and 0 for probability sample units)
+#' @param formula Formula of the regression model
+#' @return A vector of IPSW pseudo-weights
 
-ipsw.wt = function(psa_dat, wt, rsp_name, formula){
+ipsw.lg = function(psa_dat, wt, rsp_name, formula){
     ds = svydesign(ids=~1, weight = as.formula(paste("~", wt)), data = psa_dat)
     lgtreg = svyglm(as.formula(formula), family = binomial, design = ds)
     # Predict propensity scores
     p_score = lgtreg$fitted.values
     p_score.c = p_score[psa_dat[,rsp_name]==1]
-	ipsw.wt = as.vector((1-p_score.c)/p_score.c)
-	ipsw.wt
+	ipsw.lg = as.vector((1-p_score.c)/p_score.c)
+	ipsw.lg
 }
 
-###################################################################################################
-## kw.wt_out is a function calculating KW pseudo weights using logistic regression propensity    ##
-##           model to predict propensity scores                                                  ##
-## INPUT:  psa_dat  - dataframe of the combined cohort and survey sample                         ##
-##         rsp_name - name of the cohort membership indicator in psa_dat                         ##
-##                    (1 for cohort units, and 0 for survey units)                               ##
-##         formula  - formula of the regression model                                            ##
-##         svy.wt   - a vector of survey weights                                                 ##
-##         h        - bandwidth parameter                                                        ##
-##                    (default is NULL, and will be calculated corresponding to kernel function) ##
-##         krnfun   - kernel function                                                            ##
-##                    "triang": triangular density on (-3, 3)                                    ##
-##                    "dnorm":  standard normal density                                          ##
-##                    "dnorm_t":truncated standard normal densigy on (-3, 3)                     ##
-##         Large    - if the cohort size is so large that the survey sample has to be divided    ##
-##                    into pieces for calculation convenience. Default is FALSE                  ##
-##         rm.s     - removing unmatched survey units or not. Default is FALSE                   ##
-## OUTPUT: psd.wt     - KW pseudo weights                                                        ##
-##         delt.svy.s - number of unmatched survey sample units                                  ##
-##         h          - bandwidth                                                                ##
-###################################################################################################
+#' Calculate KW pseudo-weights given propensity scores
+#'
+#' This function computes KW pseudo-weights based on propensity scores
+#' that are provided by the user.
+#'
+#' If there are unmatched survey sample units, the program gives
+#' "The input bandwidth h is too small. Please choose a larger one!"
+#' If rm.s=TRUE, the program deletes unmatched survey sample units, and gives
+#' a warning "records in the prob sample were not used because of a small bandwidth"
+#' If rm.s=FALSE, the program evenly distributes weights of unmatched survey sample units
+#' to all non-probability sample units.
+#'
+#' @param p_score.c Predicted propensity scores for the non-probability sample
+#' @param p_score.s Predicted propensity scores for the probability sample
+#' @param svy.wt A vector of survey weights
+#' @param h Bandwidth parameter
+#' (will be calculated corresponding to kernel function if not specified)
+#' @param krn Kernel function.
+#' "triang": triangular density on (-3, 3),
+#' "dnorm": standard normal density,
+#' "dnorm_t": truncated standard normal density on (-3, 3).
+#' @param Large The cohort size is so large that it has to be divided into pieces. Default is FALSE.
+#' @param rm.s Remove unmatched survey units or not. Default is FALSE.
+#' @return A list \cr
+#' pswt: KW pseudo-weights \cr
+#' delt.svy: Number of unmatched survey sample units \cr
+#' h: Bandwidth
 
-kw.wt_out = function(psa_dat, rsp_name, formula, svy.wt,
-                     h=NULL, krn="triang", Large = F, rm.s = F){
-	n = dim(psa_dat)[1]
-    svyds = svydesign(ids =~1, weight = rep(1, n), data = psa_dat)
-    lgtreg = svyglm(formula, family = binomial, design = svyds)
-    p_score = lgtreg$fitted.values
-    # Propensity scores for the cohort
-    p_score.c = p_score[psa_dat[,rsp_name]==1]
-    # Propensity scores for the survey sample
-    p_score.s = p_score[psa_dat[,rsp_name]==0]
-    out = kw.wt(p_score.c = p_score.c, p_score.s = p_score.s,
-          svy.wt = svy.wt, h=h, krn= krn, Large = Large, rm.s = rm.s)
-   return(list(pswt = out$pswt, delt.svy = out$delt.svy, h = out$h))
- }
-
-
-###################################################################################################
-## kw.wt is a function calculating KW pseudo weights given the propensity scores                 ##
-## INPUT:  p_score.c - predicted propensity score for cohort                                     ##
-##         p_score.s - predicted propensity score for survey                                     ##
-##         svy.wt    - a vector of survey weights                                                ##
-##         h         - bandwidth parameter                                                       ##
-##                     (will be calculated corresponding to kernel function if not specified).   ##
-##         krnfun    - kernel function                                                           ##
-##                     "triang": triangular density on (-3, 3)                                   ##
-##                     "dnorm":  standard normal density                                         ##
-##                     "dnorm_t":truncated standard normal densigy on (-3, 3)                    ##
-##         Large     - if the cohort size is so large that it has to be divided into pieces      ##
-##         rm.s      - removing unmatched survey units or not. Default is FALSE                  ##
-## OUTPUT: psd.wt    - KW pseudo weights                                                         ##
-##         sum_0.s   - number of unmatched survey sample units                                   ##
-## WARNINGS:                                                                                     ##
-##         If there are unmatched survey sample units, the program gives                         ##
-##         "The input bandwidth h is too small. Please choose a larger one!"                     ##
-##           If rm.s=T, the program deletes unmatched survey sample units, and gives             ##
-##           a warning "records in the prob sample were not used because of a small bandwidth"   ##
-##           If rm.s=F, the program evenly distribute weights of unmatched survey sample units   ##
-##           to all cohot units.                                                                 ##
-###################################################################################################
-
-kw.wt = function(p_score.c, p_score.s, svy.wt, h=NULL, mtch_v = NULL, krn="triang", Large = F, rm.s = F){
+kw.wt = function(p_score.c, p_score.s, svy.wt, h = NULL, mtch_v = NULL, krn="triang", Large = F, rm.s = F){
   # get the name of kernel function
   # calculate bandwidth according to the kernel function
   #triangular density
@@ -170,34 +139,80 @@ kw.wt = function(p_score.c, p_score.s, svy.wt, h=NULL, mtch_v = NULL, krn="trian
   return(list(pswt = psd.wt, delt.svy = delt.svy, h = h))
 } # end of kw.wt
 
+#' Calculate KW-LG pseudo-weights
+#'
+#' This function computes KW pseudo-weights using logistic regression to
+#' predict propensity scores.
+#'
+#' @param psa_dat Dataframe of the combined non-probability and probability sample
+#' @param rsp_name Name of the non-probability sample membership indicator in psa_dat
+#' (1 for non-probability sample units, and 0 for probability sample units)
+#' @param svy.wt A vector of survey weights
+#' @param formula Formula of the regression model
+#' @param h Bandwidth parameter
+#' (will be calculated corresponding to kernel function if not specified)
+#' @param krn Kernel function.
+#' "triang": triangular density on (-3, 3),
+#' "dnorm": standard normal density,
+#' "dnorm_t": truncated standard normal density on (-3, 3).
+#' @param Large The cohort size is so large that it has to be divided into pieces. Default is FALSE.
+#' @param rm.s Remove unmatched survey units or not. Default is FALSE.
+#' @return A list \cr
+#' pswt: KW pseudo-weights \cr
+#' delt.svy: Number of unmatched survey sample units \cr
+#' h: Bandwidth
 
-######################################################################################################
-## kw.mob is a function calculating KW pseudo weights using MOB method to predict propensity scores ##
-## INPUT:  psa_dat  - dataframe of the combined cohort and survey sample                            ##
-##         tune_maxdepth - tunning parameter(s)                                                     ##
-##         wt       - name of the weight variable in psa_dat                                        ##
-##                    (common weights of 1 for cohort, and sample weights for survey)               ##
-##         formula  - formula of the propensity model                                               ##
-##         rsp_name - name of the cohort membership indicator in psa_dat                            ##
-##                    (1 for cohort units, and 0 for survey units)                                  ##
-##         svy.wt   - a vector of survey weights                                                    ##
-##         covars   - a vector of covariate names for SMD calculation                               ##
-##         h        - bandwidth parameter                                                           ##
-##                    (default is NULL, and will be calculated corresponding to kernel function)    ##
-##         krnfun   - kernel function                                                               ##
-##                    "triang": triangular density on (-3, 3)                                       ##
-##                    "dnorm":  standard normal density                                             ##
-##                    "dnorm_t":truncated standard normal densigy on (-3, 3)                        ##
-##         Large    - if the cohort size is so large that the survey sample has to be divided       ##
-##                    into pieces for calculation convenience. Default is FALSE                     ##
-##         rm.s     - removing unmatched survey units or not. Default is FALSE                      ##
-## OUTPUT: iter     - number of iteration for reaching convergence in SMD                           ##
-##         kw.mob   - a dataframe including kw weights for each tunning parameter                   ##
-##         smds     - a vector of SMD for cohort with each set of kw weight                         ##
-######################################################################################################
+kw.lg = function(psa_dat, rsp_name, svy.wt, formula,
+                 h = NULL, krn="triang", Large = F, rm.s = F){
+  n = dim(psa_dat)[1]
+  svyds = svydesign(ids =~1, weight = rep(1, n), data = psa_dat)
+  lgtreg = svyglm(formula, family = binomial, design = svyds)
+  p_score = lgtreg$fitted.values
+  # Propensity scores for the cohort
+  p_score.c = p_score[psa_dat[,rsp_name]==1]
+  # Propensity scores for the survey sample
+  p_score.s = p_score[psa_dat[,rsp_name]==0]
+  out = kw.wt(p_score.c = p_score.c, p_score.s = p_score.s,
+              svy.wt = svy.wt, h=h, krn= krn, Large = Large, rm.s = rm.s)
+  return(list(pswt = out$pswt, delt.svy = out$delt.svy, h = out$h))
+}
 
-kw.mob = function(psa_dat, wt, tune_maxdepth, formula, svy.wt, rsp_name, covars,
-                     h=NULL, krn="triang", Large = F, rm.s = F){
+#' Calculate KW-MOB pseudo-weights
+#'
+#' This function computes KW pseudo-weights using model-based recursive partitioning
+#' (glmtree() in partykit package) to predict propensity scores.
+#'
+#' @param psa_dat Dataframe of the combined non-probability and probability sample
+#' @param wt Name of the weight variable in psa_dat
+#' (common weights of 1 for non-probability sample, and survey weights for probability sample)
+#' @param rsp_name Name of the non-probability sample membership indicator in psa_dat
+#' (1 for non-probability sample units, and 0 for probability sample units)
+#' @param svy.wt A vector of survey weights
+#' @param formula Formula of the propensity model
+#' (see glmtree() in partykit package)
+#' @param tune_maxdepth A vector of values for the tuning parameter maxdepth
+#' (see glmtree() in partykit package)
+#' @param covars A vector of covariate names for standardized mean differences
+#' (SMD; covariate balance) calculation (see bal.tab() in cobalt package)
+#' @param h Bandwidth parameter
+#' (will be calculated corresponding to kernel function if not specified)
+#' @param krn Kernel function.
+#' "triang": triangular density on (-3, 3),
+#' "dnorm": standard normal density,
+#' "dnorm_t": truncated standard normal density on (-3, 3).
+#' @param Large The cohort size is so large that it has to be divided into pieces. Default is FALSE.
+#' @param rm.s Remove unmatched survey units or not. Default is FALSE.
+#' @return A list \cr
+#' iter: Number of iteration for reaching convergence in SMD \cr
+#' pswt: A dataframe including KW pseudo-weights for each tuning parameter setting \cr
+#' smds: A vector of SMD for each set of KW pseudo-weights \cr
+#' p_score_c: A dataframe including propensity scores for non-probability sample units
+#' for each tuning parameter setting \cr
+#' p_score_s: A dataframe including propensity scores for probability sample units
+#' for each tuning parameter setting
+
+kw.mob = function(psa_dat, wt, rsp_name, svy.wt, formula, tune_maxdepth, covars,
+                  h = NULL, krn="triang", Large = F, rm.s = F){
   psa_dat$wt_kw.tmp <- psa_dat[, wt]
   n_c = sum(psa_dat[, rsp_name]==1)
   n_s = sum(psa_dat[, rsp_name]==0)
@@ -233,38 +248,44 @@ kw.mob = function(psa_dat, wt, tune_maxdepth, formula, svy.wt, rsp_name, covars,
     # Check improvement in covariate balance
     if (abs(smds[i] - smds[i+1]) < 0.001 | length(tune_maxdepth) == i) break
   }
-  return(list(iter = i, kw_tmp = kw_tmp, smds = smds, p_score_c.tmp = p_score_c.tmp, p_score_s.tmp = p_score_s.tmp))
+  return(list(iter = i, pswt = kw_tmp, smds = smds, p_score_c = p_score_c.tmp, p_score_s = p_score_s.tmp))
 }
 
+#' Calculate KW-CRF pseudo-weights
+#'
+#' This function computes KW pseudo-weights using conditional random forests
+#' (cforest() in partykit package) to predict propensity scores.
+#'
+#' @param psa_dat Dataframe of the combined non-probability and probability sample
+#' @param wt Name of the weight variable in psa_dat
+#' (common weights of 1 for non-probability sample, and survey weights for probability sample)
+#' @param rsp_name Name of the non-probability sample membership indicator in psa_dat
+#' (1 for non-probability sample units, and 0 for probability sample units)
+#' @param svy.wt A vector of survey weights
+#' @param formula Formula of the propensity model
+#' (see cforest() in partykit package)
+#' @param tune_mincriterion A vector of values for the tuning parameter mincriterion
+#' (see cforest() in partykit package)
+#' @param covars A vector of covariate names for standardized mean differences
+#' (SMD; covariate balance) calculation (see bal.tab() in cobalt package)
+#' @param h Bandwidth parameter
+#' (will be calculated corresponding to kernel function if not specified)
+#' @param krn Kernel function.
+#' "triang": triangular density on (-3, 3),
+#' "dnorm": standard normal density,
+#' "dnorm_t": truncated standard normal density on (-3, 3).
+#' @param Large The cohort size is so large that it has to be divided into pieces. Default is FALSE.
+#' @param rm.s Remove unmatched survey units or not. Default is FALSE.
+#' @return A list \cr
+#' pswt: A dataframe including KW pseudo-weights for each tuning parameter setting \cr
+#' smds: A vector of SMD for each set of KW pseudo-weights \cr
+#' p_score_c: A dataframe including propensity scores for non-probability sample units
+#' for each tuning parameter setting \cr
+#' p_score_s: A dataframe including propensity scores for probability sample units
+#' for each tuning parameter setting
 
-######################################################################################################
-## kw.crf is a function calculating KW pseudo weights using conditional random forest
-##        method to predict propensity scores ##
-## INPUT:  psa_dat  - dataframe of the combined cohort and survey sample                            ##
-##         tune_mincriterion - tunning parameter(s)                                                     ##
-##         wt       - name of the weight variable in psa_dat                                        ##
-##                    (common weights of 1 for cohort, and sample weights for survey)               ##
-##         formula  - formula of the propensity model                                               ##
-##         rsp_name - name of the cohort membership indicator in psa_dat                            ##
-##                    (1 for cohort units, and 0 for survey units)                                  ##
-##         svy.wt   - a vector of survey weights                                                    ##
-##         covars   - a vector of covariate names for SMD calculation                               ##
-##         h        - bandwidth parameter                                                           ##
-##                    (default is NULL, and will be calculated corresponding to kernel function)    ##
-##         krnfun   - kernel function                                                               ##
-##                    "triang": triangular density on (-3, 3)                                       ##
-##                    "dnorm":  standard normal density                                             ##
-##                    "dnorm_t":truncated standard normal densigy on (-3, 3)                        ##
-##         Large    - if the cohort size is so large that the survey sample has to be divided       ##
-##                    into pieces for calculation convenience. Default is FALSE                     ##
-##         rm.s     - removing unmatched survey units or not. Default is FALSE                      ##
-## OUTPUT: iter     - number of iteration for reaching convergence in SMD                           ##
-##         kw.rf    - a dataframe including kw weights for each tunning parameter                   ##
-##         smds     - a vector of SMD for cohort with each set of kw weight                         ##
-######################################################################################################
-
-kw.crf = function(psa_dat, wt, tune_mincriterion, formula, svy.wt, rsp_name, covars,
-                  h=NULL, krn="triang", Large = F, rm.s = F){
+kw.crf = function(psa_dat, wt, rsp_name, svy.wt, formula, tune_mincriterion, covars,
+                  h = NULL, krn="triang", Large = F, rm.s = F){
   psa_dat$wt_kw.tmp <- psa_dat[, wt]
   n_c = sum(psa_dat[, rsp_name]==1)
   n_s = sum(psa_dat[, rsp_name]==0)
@@ -294,39 +315,47 @@ kw.crf = function(psa_dat, wt, tune_mincriterion, formula, svy.wt, rsp_name, cov
                                   s.d.denom = "pooled", binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
     }
 
-  return(list(kw_tmp = kw_tmp, smds = smds, p_score_c.tmp = p_score_c.tmp, p_score_s.tmp = p_score_s.tmp))
+  return(list(pswt = kw_tmp, smds = smds, p_score_c = p_score_c.tmp, p_score_s = p_score_s.tmp))
 }
 
+#' Calculate KW-GBM pseudo-weights
+#'
+#' This function computes KW pseudo-weights using gradient tree boosting
+#' (gbm() in gbm package) to predict propensity scores.
+#'
+#' @param psa_dat Dataframe of the combined non-probability and probability sample
+#' @param wt Name of the weight variable in psa_dat
+#' (common weights of 1 for non-probability sample, and survey weights for probability sample)
+#' @param rsp_name Name of the non-probability sample membership indicator in psa_dat
+#' (1 for non-probability sample units, and 0 for probability sample units)
+#' @param svy.wt A vector of survey weights
+#' @param formula Formula of the propensity model
+#' (see gbm() in gbm package)
+#' @param tune_idepth A vector of values for the tuning parameter interaction.depth
+#' (see gbm() in gbm package)
+#' @param tune_ntree A vector of values for the tuning parameter n.trees
+#' (see gbm() in gbm package)
+#' @param covars A vector of covariate names for standardized mean differences
+#' (SMD; covariate balance) calculation (see bal.tab() in cobalt package)
+#' @param h Bandwidth parameter
+#' (will be calculated corresponding to kernel function if not specified)
+#' @param krn Kernel function.
+#' "triang": triangular density on (-3, 3),
+#' "dnorm": standard normal density,
+#' "dnorm_t": truncated standard normal density on (-3, 3).
+#' @param Large The cohort size is so large that it has to be divided into pieces. Default is FALSE.
+#' @param rm.s Remove unmatched survey units or not. Default is FALSE.
+#' @return A list \cr
+#' iter: Number of iteration for reaching convergence in SMD \cr
+#' pswt: A dataframe including KW pseudo-weights for each tuning parameter setting \cr
+#' smds: A vector of SMD for each set of KW pseudo-weights \cr
+#' p_score_c: A dataframe including propensity scores for non-probability sample units
+#' for each tuning parameter setting \cr
+#' p_score_s: A dataframe including propensity scores for probability sample units
+#' for each tuning parameter setting
 
-######################################################################################################
-## kw.gbm is a function calculating KW pseudo weights using Gradient Tree Boosting
-##        method to predict propensity scores ##
-## INPUT:  psa_dat  - dataframe of the combined cohort and survey sample                            ##
-##         tune_idepth - tuning parameter(s)
-##         tune_ntree - tuning parameter(s)
-##         wt       - name of the weight variable in psa_dat                                        ##
-##                    (common weights of 1 for cohort, and sample weights for survey)               ##
-##         formula  - formula of the propensity model                                               ##
-##         rsp_name - name of the cohort membership indicator in psa_dat                            ##
-##                    (1 for cohort units, and 0 for survey units)                                  ##
-##         svy.wt   - a vector of survey weights                                                    ##
-##         covars   - a vector of covariate names for SMD calculation                               ##
-##         h        - bandwidth parameter                                                           ##
-##                    (default is NULL, and will be calculated corresponding to kernel function)    ##
-##         krnfun   - kernel function                                                               ##
-##                    "triang": triangular density on (-3, 3)                                       ##
-##                    "dnorm":  standard normal density                                             ##
-##                    "dnorm_t":truncated standard normal densigy on (-3, 3)                        ##
-##         Large    - if the cohort size is so large that the survey sample has to be divided       ##
-##                    into pieces for calculation convenience. Default is FALSE                     ##
-##         rm.s     - removing unmatched survey units or not. Default is FALSE                      ##
-## OUTPUT: iter     - number of iteration for reaching convergence in SMD                           ##
-##         kw.rf    - a dataframe including kw weights for each tunning parameter                   ##
-##         smds     - a vector of SMD for cohort with each set of kw weight                         ##
-######################################################################################################
-
-kw.gbm = function(psa_dat, wt, tune_idepth, tune_ntree, formula, svy.wt, rsp_name, covars,
-                  h=NULL, krn="triang", Large = F, rm.s = F){
+kw.gbm = function(psa_dat, wt, rsp_name, svy.wt, formula, tune_idepth, tune_ntree, covars,
+                  h = NULL, krn="triang", Large = F, rm.s = F){
   psa_dat$wt_kw.tmp <- psa_dat[, wt]
   n_c = sum(psa_dat[, rsp_name]==1)
   n_s = sum(psa_dat[, rsp_name]==0)
@@ -381,9 +410,8 @@ kw.gbm = function(psa_dat, wt, tune_idepth, tune_ntree, formula, svy.wt, rsp_nam
     smds_o[i] <- min(smds_i[2:(length(tune_ntree)+1)], na.rm = T)
   }
 
-  return(list(kw_tmp = kw_tmp_o, smds = smds_o, p_score_c.tmp = p_score_c.tmp, p_score_s.tmp = p_score_s.tmp))
+  return(list(pswt = kw_tmp_o, smds = smds_o, p_score_c = p_score_c.tmp, p_score_s = p_score_s.tmp))
 }
-
 
 #####################################################################################################################
 ## cmb_dat is a function for data preparation including removing missing values in cohort and survey sample,       ##
