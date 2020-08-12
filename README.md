@@ -13,10 +13,10 @@ Calculate IPSW and KW-LG pseudo-weights with example data. `simu_dat` is a stack
 ``` {.r}
 library(KWML)
 
-ipsw_w <- ipsw.lg(simu_dat, simu_dat$elig_wt, simu_dat$trt_n, 
+ipsw_w <- ipsw.lg(simu_dat, "elig_wt", "trt_n", 
                   "trt_n ~ w1 + w2 + w3 + w4 + w5 + w6 + w7")
 
-kwlg_w <- kw.lg(simu_dat, simu_dat$elig_wt, simu_dat$trt_n, 
+kwlg_w <- kw.lg(simu_dat, "elig_wt", "trt_n", 
                 "trt_n ~ w1 + w2 + w3 + w4 + w5 + w6 + w7")$pswt
 ```
 

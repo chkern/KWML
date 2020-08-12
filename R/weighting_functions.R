@@ -17,7 +17,7 @@ ipsw.lg = function(psa_dat, wt, rsp_name, formula){
     lgtreg = survey::svyglm(as.formula(formula), family = binomial, design = ds)
     # Predict propensity scores
     p_score = lgtreg$fitted.values
-    p_score.c = p_score[rsp_name==1]
+    p_score.c = p_score[psa_dat[,rsp_name]==1]
 	ipsw.lg = as.vector((1-p_score.c)/p_score.c)
 	ipsw.lg
 }
@@ -168,15 +168,15 @@ kw.wt = function(p_score.c, p_score.s, svy.wt, h = NULL, mtch_v = NULL, krn="tri
 
 kw.lg = function(psa_dat, wt, rsp_name, formula,
                  h = NULL, krn="triang", Large = F, rm.s = F){
-  svy.wt = wt[rsp_name==0]
+  svy.wt = psa_dat[psa_dat[, rsp_name]==0, wt]
   n = dim(psa_dat)[1]
   svyds = survey::svydesign(ids =~1, weight = rep(1, n), data = psa_dat)
   lgtreg = survey::svyglm(as.formula(formula), family = binomial, design = svyds)
   p_score = lgtreg$fitted.values
   # Propensity scores for the cohort
-  p_score.c = p_score[rsp_name==1]
+  p_score.c = p_score[psa_dat[,rsp_name]==1]
   # Propensity scores for the survey sample
-  p_score.s = p_score[rsp_name==0]
+  p_score.s = p_score[psa_dat[,rsp_name]==0]
   out = kw.wt(p_score.c = p_score.c, p_score.s = p_score.s,
               svy.wt = svy.wt, h=h, krn= krn, Large = Large, rm.s = rm.s)
   return(list(pswt = out$pswt, delt.svy = out$delt.svy, h = out$h))
@@ -218,10 +218,10 @@ kw.lg = function(psa_dat, wt, rsp_name, formula,
 
 kw.mob = function(psa_dat, wt, rsp_name, formula, tune_maxdepth, covars,
                   h = NULL, krn="triang", Large = F, rm.s = F){
-  svy.wt = wt[rsp_name==0]
+  svy.wt = psa_dat[psa_dat[, rsp_name]==0, wt]
   psa_dat$wt_kw.tmp <- psa_dat[, wt]
-  n_c = nrow(psa_dat[rsp_name==1,])
-  n_s = nrow(psa_dat[rsp_name==0,])
+  n_c = sum(psa_dat[, rsp_name]==1)
+  n_s = sum(psa_dat[, rsp_name]==0)
   p_score       <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = nrow(psa_dat)))
   p_score_c.tmp <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = n_c))
   p_score_s.tmp <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = n_s))
@@ -292,10 +292,10 @@ kw.mob = function(psa_dat, wt, rsp_name, formula, tune_maxdepth, covars,
 
 kw.crf = function(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
                   h = NULL, krn="triang", Large = F, rm.s = F){
-  svy.wt = wt[rsp_name==0]
+  svy.wt = psa_dat[psa_dat[, rsp_name]==0, wt]
   psa_dat$wt_kw.tmp <- psa_dat[, wt]
-  n_c = nrow(psa_dat[rsp_name==1,])
-  n_s = nrow(psa_dat[rsp_name==0,])
+  n_c = sum(psa_dat[, rsp_name]==1)
+  n_s = sum(psa_dat[, rsp_name]==0)
   p_score       <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = nrow(psa_dat)))
   p_score_c.tmp <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = n_c))
   p_score_s.tmp <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = n_s))
@@ -363,10 +363,10 @@ kw.crf = function(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
 
 kw.gbm = function(psa_dat, wt, rsp_name, formula, tune_idepth, tune_ntree, covars,
                   h = NULL, krn="triang", Large = F, rm.s = F){
-  svy.wt = wt[rsp_name==0]
+  svy.wt = psa_dat[psa_dat[, rsp_name]==0, wt]
   psa_dat$wt_kw.tmp <- psa_dat[, wt]
-  n_c = nrow(psa_dat[rsp_name==1,])
-  n_s = nrow(psa_dat[rsp_name==0,])
+  n_c = sum(psa_dat[, rsp_name]==1)
+  n_s = sum(psa_dat[, rsp_name]==0)
   p_score_c.tmp <- data.frame(matrix(ncol = length(tune_idepth), nrow = n_c))
   p_score_s.tmp <- data.frame(matrix(ncol = length(tune_idepth), nrow = n_s))
   p_scores_i  <- data.frame(matrix(ncol = length(tune_ntree),  nrow = nrow(psa_dat)))
