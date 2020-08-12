@@ -4,16 +4,17 @@
 \alias{kw.lg}
 \title{Calculate KW-LG pseudo-weights}
 \usage{
-kw.lg(psa_dat, rsp_name, svy.wt, formula, h = NULL, krn = "triang",
+kw.lg(psa_dat, wt, rsp_name, formula, h = NULL, krn = "triang",
   Large = F, rm.s = F)
 }
 \arguments{
 \item{psa_dat}{Dataframe of the combined non-probability and probability sample}
 
+\item{wt}{Name of the weight variable in psa_dat
+(common weights of 1 for non-probability sample, and survey weights for probability sample)}
+
 \item{rsp_name}{Name of the non-probability sample membership indicator in psa_dat
 (1 for non-probability sample units, and 0 for probability sample units)}
-
-\item{svy.wt}{A vector of survey weights}
 
 \item{formula}{Formula of the regression model}
 

@@ -10,13 +10,14 @@
 #' (1 for non-probability sample units, and 0 for probability sample units)
 #' @param formula Formula of the regression model
 #' @return A vector of IPSW pseudo-weights
+#' @export
 
 ipsw.lg = function(psa_dat, wt, rsp_name, formula){
-    ds = svydesign(ids=~1, weight = as.formula(paste("~", wt)), data = psa_dat)
-    lgtreg = svyglm(as.formula(formula), family = binomial, design = ds)
+    ds = survey::svydesign(ids=~1, weight = as.formula(paste("~", wt)), data = psa_dat)
+    lgtreg = survey::svyglm(as.formula(formula), family = binomial, design = ds)
     # Predict propensity scores
     p_score = lgtreg$fitted.values
-    p_score.c = p_score[psa_dat[,rsp_name]==1]
+    p_score.c = p_score[rsp_name==1]
 	ipsw.lg = as.vector((1-p_score.c)/p_score.c)
 	ipsw.lg
 }
@@ -35,7 +36,7 @@ ipsw.lg = function(psa_dat, wt, rsp_name, formula){
 #'
 #' @param p_score.c Predicted propensity scores for the non-probability sample
 #' @param p_score.s Predicted propensity scores for the probability sample
-#' @param svy.wt A vector of survey weights
+#' @param svy.wt A vector of survey weights for the probability sample units
 #' @param h Bandwidth parameter
 #' (will be calculated corresponding to kernel function if not specified)
 #' @param krn Kernel function.
@@ -48,6 +49,7 @@ ipsw.lg = function(psa_dat, wt, rsp_name, formula){
 #' pswt: KW pseudo-weights \cr
 #' delt.svy: Number of unmatched survey sample units \cr
 #' h: Bandwidth
+#' @export
 
 kw.wt = function(p_score.c, p_score.s, svy.wt, h = NULL, mtch_v = NULL, krn="triang", Large = F, rm.s = F){
   # get the name of kernel function
@@ -145,9 +147,10 @@ kw.wt = function(p_score.c, p_score.s, svy.wt, h = NULL, mtch_v = NULL, krn="tri
 #' predict propensity scores.
 #'
 #' @param psa_dat Dataframe of the combined non-probability and probability sample
+#' @param wt Name of the weight variable in psa_dat
+#' (common weights of 1 for non-probability sample, and survey weights for probability sample)
 #' @param rsp_name Name of the non-probability sample membership indicator in psa_dat
 #' (1 for non-probability sample units, and 0 for probability sample units)
-#' @param svy.wt A vector of survey weights
 #' @param formula Formula of the regression model
 #' @param h Bandwidth parameter
 #' (will be calculated corresponding to kernel function if not specified)
@@ -161,17 +164,19 @@ kw.wt = function(p_score.c, p_score.s, svy.wt, h = NULL, mtch_v = NULL, krn="tri
 #' pswt: KW pseudo-weights \cr
 #' delt.svy: Number of unmatched survey sample units \cr
 #' h: Bandwidth
+#' @export
 
-kw.lg = function(psa_dat, rsp_name, svy.wt, formula,
+kw.lg = function(psa_dat, wt, rsp_name, formula,
                  h = NULL, krn="triang", Large = F, rm.s = F){
+  svy.wt = wt[rsp_name==0]
   n = dim(psa_dat)[1]
-  svyds = svydesign(ids =~1, weight = rep(1, n), data = psa_dat)
-  lgtreg = svyglm(formula, family = binomial, design = svyds)
+  svyds = survey::svydesign(ids =~1, weight = rep(1, n), data = psa_dat)
+  lgtreg = survey::svyglm(as.formula(formula), family = binomial, design = svyds)
   p_score = lgtreg$fitted.values
   # Propensity scores for the cohort
-  p_score.c = p_score[psa_dat[,rsp_name]==1]
+  p_score.c = p_score[rsp_name==1]
   # Propensity scores for the survey sample
-  p_score.s = p_score[psa_dat[,rsp_name]==0]
+  p_score.s = p_score[rsp_name==0]
   out = kw.wt(p_score.c = p_score.c, p_score.s = p_score.s,
               svy.wt = svy.wt, h=h, krn= krn, Large = Large, rm.s = rm.s)
   return(list(pswt = out$pswt, delt.svy = out$delt.svy, h = out$h))
@@ -187,7 +192,6 @@ kw.lg = function(psa_dat, rsp_name, svy.wt, formula,
 #' (common weights of 1 for non-probability sample, and survey weights for probability sample)
 #' @param rsp_name Name of the non-probability sample membership indicator in psa_dat
 #' (1 for non-probability sample units, and 0 for probability sample units)
-#' @param svy.wt A vector of survey weights
 #' @param formula Formula of the propensity model
 #' (see glmtree() in partykit package)
 #' @param tune_maxdepth A vector of values for the tuning parameter maxdepth
@@ -210,18 +214,20 @@ kw.lg = function(psa_dat, rsp_name, svy.wt, formula,
 #' for each tuning parameter setting \cr
 #' p_score_s: A dataframe including propensity scores for probability sample units
 #' for each tuning parameter setting
+#' @export
 
-kw.mob = function(psa_dat, wt, rsp_name, svy.wt, formula, tune_maxdepth, covars,
+kw.mob = function(psa_dat, wt, rsp_name, formula, tune_maxdepth, covars,
                   h = NULL, krn="triang", Large = F, rm.s = F){
+  svy.wt = wt[rsp_name==0]
   psa_dat$wt_kw.tmp <- psa_dat[, wt]
-  n_c = sum(psa_dat[, rsp_name]==1)
-  n_s = sum(psa_dat[, rsp_name]==0)
+  n_c = nrow(psa_dat[rsp_name==1,])
+  n_s = nrow(psa_dat[rsp_name==0,])
   p_score       <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = nrow(psa_dat)))
   p_score_c.tmp <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = n_c))
   p_score_s.tmp <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = n_s))
   smds <- rep(NA, length(tune_maxdepth)+1)
-  smds[1] <- mean(abs(bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat[, wt],
-                     s.d.denom = "pooled", binary = "std", method="weighting")$Balance[, "Diff.Adj"]))
+  smds[1] <- mean(abs(cobalt::bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat[, wt],
+                      s.d.denom = "pooled", binary = "std", method="weighting")$Balance[, "Diff.Adj"]))
   i <- 0
   kw_tmp = as.data.frame(matrix(0, n_c, length(tune_maxdepth)))
   # Loop over try-out values
@@ -229,22 +235,22 @@ kw.mob = function(psa_dat, wt, rsp_name, svy.wt, formula, tune_maxdepth, covars,
     i <- i+1
     # Run model
     maxdepth <- tune_maxdepth[i]
-    mob <- glmtree(formula,
-                   data = psa_dat,
-                   family = binomial,
-                   alpha = 0.05,
-                   minsplit = NULL,
-                   maxdepth = maxdepth)
+    mob <- partykit::glmtree(formula,
+                             data = psa_dat,
+                             family = binomial,
+                             alpha = 0.05,
+                             minsplit = NULL,
+                             maxdepth = maxdepth)
     p_score[, i]       <- predict(mob, psa_dat, type = "response")
-    p_score_c.tmp[, i] <- p_score[psa_dat$trt == 1, i]
-    p_score_s.tmp[, i] <- p_score[psa_dat$trt == 0, i]
+    p_score_c.tmp[, i] <- p_score[rsp_name == 1, i]
+    p_score_s.tmp[, i] <- p_score[rsp_name == 0, i]
     # Calculate KW weights
     kw_tmp[,i] <- kw.wt(p_score.c = p_score_c.tmp[,i], p_score.s = p_score_s.tmp[,i],
                        svy.wt = svy.wt, Large=F)$pswt
     # Calculate covariate balance
-    psa_dat$wt_kw[psa_dat$trt == 1] <- kw_tmp[,i]
-    smds[i+1] <- mean(abs(bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat$wt_kw,
-                                  s.d.denom = "pooled", binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
+    psa_dat$wt_kw.tmp[rsp_name == 1] <- kw_tmp[,i]
+    smds[i+1] <- mean(abs(cobalt::bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat$wt_kw.tmp,
+                                          s.d.denom = "pooled", binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
     # Check improvement in covariate balance
     if (abs(smds[i] - smds[i+1]) < 0.001 | length(tune_maxdepth) == i) break
   }
@@ -261,7 +267,6 @@ kw.mob = function(psa_dat, wt, rsp_name, svy.wt, formula, tune_maxdepth, covars,
 #' (common weights of 1 for non-probability sample, and survey weights for probability sample)
 #' @param rsp_name Name of the non-probability sample membership indicator in psa_dat
 #' (1 for non-probability sample units, and 0 for probability sample units)
-#' @param svy.wt A vector of survey weights
 #' @param formula Formula of the propensity model
 #' (see cforest() in partykit package)
 #' @param tune_mincriterion A vector of values for the tuning parameter mincriterion
@@ -283,36 +288,38 @@ kw.mob = function(psa_dat, wt, rsp_name, svy.wt, formula, tune_maxdepth, covars,
 #' for each tuning parameter setting \cr
 #' p_score_s: A dataframe including propensity scores for probability sample units
 #' for each tuning parameter setting
+#' @export
 
-kw.crf = function(psa_dat, wt, rsp_name, svy.wt, formula, tune_mincriterion, covars,
+kw.crf = function(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
                   h = NULL, krn="triang", Large = F, rm.s = F){
+  svy.wt = wt[rsp_name==0]
   psa_dat$wt_kw.tmp <- psa_dat[, wt]
-  n_c = sum(psa_dat[, rsp_name]==1)
-  n_s = sum(psa_dat[, rsp_name]==0)
+  n_c = nrow(psa_dat[rsp_name==1,])
+  n_s = nrow(psa_dat[rsp_name==0,])
   p_score       <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = nrow(psa_dat)))
   p_score_c.tmp <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = n_c))
   p_score_s.tmp <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = n_s))
   smds <- rep(NA, length(tune_mincriterion))
-  smds[1] <- mean(abs(bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat[, wt],
-                              s.d.denom = "pooled", binary = "std", method="weighting")$Balance[, "Diff.Adj"]))
+  smds[1] <- mean(abs(cobalt::bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat[, wt],
+                                      s.d.denom = "pooled", binary = "std", method="weighting")$Balance[, "Diff.Adj"]))
   kw_tmp = as.data.frame(matrix(0, n_c, length(tune_mincriterion)))
   # Loop over try-out values
   for (i in seq_along(tune_mincriterion)){
     minc <- tune_mincriterion[i]
-    crf <- cforest(formula,
-                   data = psa_dat,
-                   control = ctree_control(mincriterion = minc),
-                   ntree = 100)
+    crf <- partykit::cforest(formula,
+                             data = psa_dat,
+                             control = ctree_control(mincriterion = minc),
+                             ntree = 100)
     p_score[, i]       <- predict(crf, newdata = psa_dat, type = "prob")[, 2]
-    p_score_c.tmp[, i] <- p_score[psa_dat$trt == 1, i]
-    p_score_s.tmp[, i] <- p_score[psa_dat$trt == 0, i]
+    p_score_c.tmp[, i] <- p_score[rsp_name == 1, i]
+    p_score_s.tmp[, i] <- p_score[rsp_name == 0, i]
     # Calculate KW weights
     kw_tmp[,i] <- kw.wt(p_score.c = p_score_c.tmp[,i], p_score.s = p_score_s.tmp[,i],
                         svy.wt = svy.wt, Large=F)$pswt
     # Calculate covariate balance
-    psa_dat$wt_kw[psa_dat$trt == 1] <- kw_tmp[,i]
-    smds[i+1] <- mean(abs(bal.tab(psa_dat[, covars], treat = psa_dat$trt, weights = psa_dat$wt_kw,
-                                  s.d.denom = "pooled", binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
+    psa_dat$wt_kw.tmp[rsp_name == 1] <- kw_tmp[,i]
+    smds[i+1] <- mean(abs(cobalt::bal.tab(psa_dat[, covars], treat = psa_dat$trt, weights = psa_dat$wt_kw.tmp,
+                                          s.d.denom = "pooled", binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
     }
 
   return(list(pswt = kw_tmp, smds = smds, p_score_c = p_score_c.tmp, p_score_s = p_score_s.tmp))
@@ -328,7 +335,6 @@ kw.crf = function(psa_dat, wt, rsp_name, svy.wt, formula, tune_mincriterion, cov
 #' (common weights of 1 for non-probability sample, and survey weights for probability sample)
 #' @param rsp_name Name of the non-probability sample membership indicator in psa_dat
 #' (1 for non-probability sample units, and 0 for probability sample units)
-#' @param svy.wt A vector of survey weights
 #' @param formula Formula of the propensity model
 #' (see gbm() in gbm package)
 #' @param tune_idepth A vector of values for the tuning parameter interaction.depth
@@ -353,12 +359,14 @@ kw.crf = function(psa_dat, wt, rsp_name, svy.wt, formula, tune_mincriterion, cov
 #' for each tuning parameter setting \cr
 #' p_score_s: A dataframe including propensity scores for probability sample units
 #' for each tuning parameter setting
+#' @export
 
-kw.gbm = function(psa_dat, wt, rsp_name, svy.wt, formula, tune_idepth, tune_ntree, covars,
+kw.gbm = function(psa_dat, wt, rsp_name, formula, tune_idepth, tune_ntree, covars,
                   h = NULL, krn="triang", Large = F, rm.s = F){
+  svy.wt = wt[rsp_name==0]
   psa_dat$wt_kw.tmp <- psa_dat[, wt]
-  n_c = sum(psa_dat[, rsp_name]==1)
-  n_s = sum(psa_dat[, rsp_name]==0)
+  n_c = nrow(psa_dat[rsp_name==1,])
+  n_s = nrow(psa_dat[rsp_name==0,])
   p_score_c.tmp <- data.frame(matrix(ncol = length(tune_idepth), nrow = n_c))
   p_score_s.tmp <- data.frame(matrix(ncol = length(tune_idepth), nrow = n_s))
   p_scores_i  <- data.frame(matrix(ncol = length(tune_ntree),  nrow = nrow(psa_dat)))
@@ -366,8 +374,8 @@ kw.gbm = function(psa_dat, wt, rsp_name, svy.wt, formula, tune_idepth, tune_ntre
   p_score_i_c <- data.frame(matrix(ncol = length(tune_ntree),  nrow = n_s))
   smds_o <- rep(NA, length(tune_idepth))
   smds_i <- rep(NA, length(tune_ntree)+1)
-  smds_i[1] <- mean(abs(bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat[, wt],
-                                s.d.denom = "pooled", binary = "std", method="weighting")$Balance[, "Diff.Adj"]))
+  smds_i[1] <- mean(abs(cobalt::bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat[, wt],
+                                        s.d.denom = "pooled", binary = "std", method="weighting")$Balance[, "Diff.Adj"]))
   kw_tmp_o = as.data.frame(matrix(0, n_c, length(tune_idepth)))
   kw_tmp_i = as.data.frame(matrix(0, n_c, length(tune_ntree)))
   # Outer loop over try-out values
@@ -380,22 +388,22 @@ kw.gbm = function(psa_dat, wt, rsp_name, svy.wt, formula, tune_idepth, tune_ntre
       j <- j+1
       # Run model
       ntree <- tune_ntree[j]
-      boost <- gbm(formula, data = psa_dat,
-                   distribution = "bernoulli",
-                   n.trees = ntree,
-                   interaction.depth = idepth,
-                   shrinkage = 0.05,
-                   bag.fraction = 1)
+      boost <- gbm::gbm(formula, data = psa_dat,
+                        distribution = "bernoulli",
+                        n.trees = ntree,
+                        interaction.depth = idepth,
+                        shrinkage = 0.05,
+                        bag.fraction = 1)
       p_scores_i[, j] <- predict(boost, psa_dat, n.trees = ntree, type = "response")
-      p_score_i_c[, j] <- p_scores_i[psa_dat$trt == 1, j]
-      p_score_i_s[, j] <- p_scores_i[psa_dat$trt == 0, j]
+      p_score_i_c[, j] <- p_scores_i[rsp_name == 1, j]
+      p_score_i_s[, j] <- p_scores_i[rsp_name == 0, j]
       # Calculate KW weights
       kw_tmp_i[, j] <- kw.wt(p_score.c = p_score_i_c[, j], p_score.s = p_score_i_s[,j],
-                         svy.wt = samp.s$wt, Large=F)$pswt
+                             svy.wt = svy.wt, Large=F)$pswt
       # Calculate covariate balance
-      psa_dat$wt_kw[psa_dat$trt == 1] <- samp.c$kw
-      smds_i[j+1] <- mean(abs(bal.tab(psa_dat[, covars], treat = psa_dat$trt, weights = psa_dat$wt_kw, s.d.denom = "pooled",
-                                      binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
+      psa_dat$wt_kw.tmp[rsp_name == 1] <- kw_tmp_i[, j]
+      smds_i[j+1] <- mean(abs(cobalt::bal.tab(psa_dat[, covars], treat = psa_dat$trt, weights = psa_dat$wt_kw.tmp,
+                                              s.d.denom = "pooled", binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
       # Check improvement in covariate balance
       if (abs(smds_i[j] - smds_i[j+1]) < 0.001 | length(tune_ntree) == j){
         print(paste0("gbm", j))

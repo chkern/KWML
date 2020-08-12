@@ -4,8 +4,8 @@
 \alias{kw.mob}
 \title{Calculate KW-MOB pseudo-weights}
 \usage{
-kw.mob(psa_dat, wt, rsp_name, svy.wt, formula, tune_maxdepth, covars,
-  h = NULL, krn = "triang", Large = F, rm.s = F)
+kw.mob(psa_dat, wt, rsp_name, formula, tune_maxdepth, covars, h = NULL,
+  krn = "triang", Large = F, rm.s = F)
 }
 \arguments{
 \item{psa_dat}{Dataframe of the combined non-probability and probability sample}
@@ -15,8 +15,6 @@ kw.mob(psa_dat, wt, rsp_name, svy.wt, formula, tune_maxdepth, covars,
 
 \item{rsp_name}{Name of the non-probability sample membership indicator in psa_dat
 (1 for non-probability sample units, and 0 for probability sample units)}
-
-\item{svy.wt}{A vector of survey weights}
 
 \item{formula}{Formula of the propensity model
 (see glmtree() in partykit package)}

@@ -4,7 +4,7 @@
 \alias{kw.crf}
 \title{Calculate KW-CRF pseudo-weights}
 \usage{
-kw.crf(psa_dat, wt, rsp_name, svy.wt, formula, tune_mincriterion, covars,
+kw.crf(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
   h = NULL, krn = "triang", Large = F, rm.s = F)
 }
 \arguments{
@@ -15,8 +15,6 @@ kw.crf(psa_dat, wt, rsp_name, svy.wt, formula, tune_mincriterion, covars,
 
 \item{rsp_name}{Name of the non-probability sample membership indicator in psa_dat
 (1 for non-probability sample units, and 0 for probability sample units)}
-
-\item{svy.wt}{A vector of survey weights}
 
 \item{formula}{Formula of the propensity model
 (see cforest() in partykit package)}

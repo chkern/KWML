@@ -12,7 +12,7 @@ kw.wt(p_score.c, p_score.s, svy.wt, h = NULL, mtch_v = NULL,
 
 \item{p_score.s}{Predicted propensity scores for the probability sample}
 
-\item{svy.wt}{A vector of survey weights}
+\item{svy.wt}{A vector of survey weights for the probability sample units}
 
 \item{h}{Bandwidth parameter
 (will be calculated corresponding to kernel function if not specified)}
