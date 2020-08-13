@@ -296,9 +296,9 @@ kw.crf = function(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
   psa_dat$wt_kw.tmp <- psa_dat[, wt]
   n_c <- sum(psa_dat[, rsp_name]==1)
   n_s <- sum(psa_dat[, rsp_name]==0)
-  p_score       <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = nrow(psa_dat)))
-  p_score_c.tmp <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = n_c))
-  p_score_s.tmp <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = n_s))
+  p_score       <- data.frame(matrix(ncol = length(tune_mincriterion), nrow = nrow(psa_dat)))
+  p_score_c.tmp <- data.frame(matrix(ncol = length(tune_mincriterion), nrow = n_c))
+  p_score_s.tmp <- data.frame(matrix(ncol = length(tune_mincriterion), nrow = n_s))
   smds <- rep(NA, length(tune_mincriterion))
   smds[1] <- mean(abs(cobalt::bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat[, wt],
                                       s.d.denom = "pooled", binary = "std", method="weighting")$Balance[, "Diff.Adj"]))
@@ -308,7 +308,7 @@ kw.crf = function(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
     minc <- tune_mincriterion[i]
     crf <- partykit::cforest(as.formula(formula),
                              data = psa_dat,
-                             control = ctree_control(mincriterion = minc),
+                             control = partykit::ctree_control(mincriterion = minc),
                              ntree = 100)
     p_score[, i]       <- predict(crf, newdata = psa_dat, type = "prob")[, 2]
     p_score_c.tmp[, i] <- p_score[psa_dat[, rsp_name]==1, i]
@@ -380,7 +380,6 @@ kw.gbm = function(psa_dat, wt, rsp_name, formula, tune_idepth, tune_ntree, covar
   kw_tmp_i <- as.data.frame(matrix(0, n_c, length(tune_ntree)))
   # Outer loop over try-out values
   for (i in seq_along(tune_idepth)){
-    #print(i)
     idepth <- tune_idepth[i]
     j <- 0
     # Inner loop over try-out values
@@ -407,7 +406,6 @@ kw.gbm = function(psa_dat, wt, rsp_name, formula, tune_idepth, tune_ntree, covar
                                               s.d.denom = "pooled", binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
       # Check improvement in covariate balance
       if (abs(smds_i[j] - smds_i[j+1]) < 0.001 | length(tune_ntree) == j){
-        print(paste0("gbm", j))
         break
       }
     }
