@@ -13,20 +13,19 @@ Calculate IPSW and KW-LG pseudo-weights with example data. `simu_dat` is a stack
 ``` {.r}
 library(KWML)
 
-ipsw_w <- ipsw.lg(simu_dat, "elig_wt", "trt_n", 
-                  "trt_n ~ w1 + w2 + w3 + w4 + w5 + w6 + w7")
+ipsw <- ipsw.lg(simu_dat, "wt", "trt", 
+                "trt ~ x1 + x2 + x3 + x4 + x5 + x6 + x7")
 
-kwlg_w <- kw.lg(simu_dat, "elig_wt", "trt_n", 
-                "trt_n ~ w1 + w2 + w3 + w4 + w5 + w6 + w7")$pswt
+kwlg <- kw.lg(simu_dat, "wt", "trt", 
+              "trt ~ x1 + x2 + x3 + x4 + x5 + x6 + x7")$pswt
 ```
 
-Compare mean of y in prob sample, naive mean in non-prob sample, and pseudo-weighted means.
+Compare weighted mean of y in prob sample and pseudo-weighted means in non-prob sample.
 
 ``` {.r}
-mean(simu_dat$y[simu_dat$trt == 0])
-mean(simu_dat$y[simu_dat$trt == 1])
-sum((simu_dat$y[simu_dat$trt == 1]*ipsw_w)/sum(ipsw_w))
-sum((simu_dat$y[simu_dat$trt == 1]*kwlg_w)/sum(kwlg_w))
+sum((simu_dat$y[simu_dat$trt == 0]*simu_dat$wt)/sum(simu_dat$wt))
+sum((simu_dat$y[simu_dat$trt == 1]*ipsw)/sum(ipsw))
+sum((simu_dat$y[simu_dat$trt == 1]*kwlg)/sum(kwlg))
 ```
 
 ### Citation 
