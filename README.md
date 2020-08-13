@@ -13,10 +13,10 @@ Calculate IPSW (`ipsw.lg()`) and KW-LG (`kw.lg()`) pseudo-weights with example d
 ``` {.r}
 library(KWML)
 
-ipsw2 <- ipsw.lg(simu_dat, "wt", "trt", 
+ipsw <- ipsw.lg(simu_dat, "wt", "trt", 
                 "trt_f ~ x1 + x2 + x3 + x4 + x5 + x6 + x7")
 
-kwlg2 <- kw.lg(simu_dat, "wt", "trt", 
+kwlg <- kw.lg(simu_dat, "wt", "trt", 
               "trt_f ~ x1 + x2 + x3 + x4 + x5 + x6 + x7")$pswt
 ```
 
