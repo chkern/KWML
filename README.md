@@ -8,7 +8,7 @@ Implements functions for inverse propensity-score weighting (`ipsw.lg()`), kerne
 
 ### Example
 
-Calculate IPSW (`ipsw.lg()`) and KW-LG (`kw.lg()`) pseudo-weights with example data. `simu_dat` is a stacked data frame with a simulated probability and non-probability sample. Both functions need the data frame, the name of the weight variable (`wt`), the name of the sample membership indicator (`trt`) and a formula for the propensity model as input.
+Calculate IPSW (`ipsw.lg()`) and KW-LG (`kw.lg()`) pseudo-weights with example data. `simu_dat` is a stacked data frame with a simulated probability and non-probability sample. `ipsw.lg()` and `kw.lg()` need a data frame, the name of the weight variable (`wt`, weights of 1 for non-prob, survey weights for prob sample), the name of the sample membership indicator (`trt`, 1 for non-prob, 0 for prob sample) and a formula for the propensity model as input.
 
 ``` {.r}
 library(KWML)
