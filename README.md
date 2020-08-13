@@ -13,11 +13,11 @@ Calculate IPSW (`ipsw.lg()`) and KW-LG (`kw.lg()`) pseudo-weights with example d
 ``` {.r}
 library(KWML)
 
-ipsw <- ipsw.lg(simu_dat, "wt", "trt", 
-                "trt_f ~ x1 + x2 + x3 + x4 + x5 + x6 + x7")
+ipsw_w <- ipsw.lg(simu_dat, "wt", "trt", 
+                  "trt_f ~ x1+x2+x3+x4+x5+x6+x7")
 
-kwlg <- kw.lg(simu_dat, "wt", "trt", 
-              "trt_f ~ x1 + x2 + x3 + x4 + x5 + x6 + x7")$pswt
+kwlg_w <- kw.lg(simu_dat, "wt", "trt", 
+                "trt_f ~ x1+x2+x3+x4+x5+x6+x7")$pswt
 ```
 
 For the KW-ML functions (`kw.mob()`, `kw.crf()`, `kw.gbm()`), tuning parameter grids and covariate names for covariate balance calculation need to be specified additionally. 
@@ -32,20 +32,32 @@ kwcrf <- kw.crf(simu_dat, "wt", "trt",
                "trt_f ~ x1+x2+x3+x4+x5+x6+x7",
                c(0.95, 0.9), 
                c("x1","x2","x3","x4","x5","x6","x7"))
-               
+
 kwgbm <- kw.gbm(simu_dat, "wt", "trt", 
                "trt ~ x1+x2+x3+x4+x5+x6+x7",
                1:3,
                c(250, 500),
-               c("x1","x2","x3","x4","x5","x6","x7"))               
+               c("x1","x2","x3","x4","x5","x6","x7"))            
+```
+
+Select KW-ML pseudo-weights with best covariate balance.
+
+``` {.r}
+kwmob_w <- kwmob$pswt[, kwmob$best]
+kwcrf_w <- kwcrf$pswt[, kwcrf$best]
+kwgbm_w <- kwgbm$pswt[, kwgbm$best]
 ```
 
 Compare weighted mean of y in prob sample and pseudo-weighted means in non-prob sample.
 
 ``` {.r}
 sum((simu_dat$y[simu_dat$trt == 0]*simu_dat$wt)/sum(simu_dat$wt))
-sum((simu_dat$y[simu_dat$trt == 1]*ipsw)/sum(ipsw))
-sum((simu_dat$y[simu_dat$trt == 1]*kwlg)/sum(kwlg))
+sum((simu_dat$y[simu_dat$trt == 1]*ipsw_w)/sum(ipsw_w))
+sum((simu_dat$y[simu_dat$trt == 1]*kwlg_w)/sum(kwlg_w))
+
+sum((simu_dat$y[simu_dat$trt == 1]*kwmob_w)/sum(kwmob_w))
+sum((simu_dat$y[simu_dat$trt == 1]*kwcrf_w)/sum(kwcrf_w))
+sum((simu_dat$y[simu_dat$trt == 1]*kwgbm_w)/sum(kwgbm_w))
 ```
 
 ### Citation 

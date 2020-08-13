@@ -42,8 +42,9 @@ kw.gbm(psa_dat, wt, rsp_name, formula, tune_idepth, tune_ntree, covars,
 }
 \value{
 A list \cr
-iter: Number of iteration for reaching convergence in SMD \cr
-pswt: A dataframe including KW pseudo-weights for each tuning parameter setting \cr
+pswt: A dataframe including KW pseudo-weights for
+each setting of tune_idepth with the best setting of tune_ntree \cr
+best: Identifier for the KW pseudo-weights in pswt with the smallest SMD \cr
 smds: A vector of SMD for each set of KW pseudo-weights \cr
 p_score_c: A dataframe including propensity scores for non-probability sample units
 for each tuning parameter setting \cr

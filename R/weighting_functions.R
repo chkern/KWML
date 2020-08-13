@@ -207,9 +207,9 @@ kw.lg = function(psa_dat, wt, rsp_name, formula,
 #' @param Large The cohort size is so large that it has to be divided into pieces. Default is FALSE.
 #' @param rm.s Remove unmatched survey units or not. Default is FALSE.
 #' @return A list \cr
-#' iter: Number of iteration for reaching convergence in SMD \cr
 #' pswt: A dataframe including KW pseudo-weights for each tuning parameter setting \cr
 #' smds: A vector of SMD for each set of KW pseudo-weights \cr
+#' best: Identifier for the KW pseudo-weights in pswt with the smallest SMD \cr
 #' p_score_c: A dataframe including propensity scores for non-probability sample units
 #' for each tuning parameter setting \cr
 #' p_score_s: A dataframe including propensity scores for probability sample units
@@ -225,14 +225,10 @@ kw.mob = function(psa_dat, wt, rsp_name, formula, tune_maxdepth, covars,
   p_score       <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = nrow(psa_dat)))
   p_score_c.tmp <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = n_c))
   p_score_s.tmp <- data.frame(matrix(ncol = length(tune_maxdepth), nrow = n_s))
-  smds <- rep(NA, length(tune_maxdepth)+1)
-  smds[1] <- mean(abs(cobalt::bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat[, wt],
-                      s.d.denom = "pooled", binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
-  i <- 0
+  smds <- rep(NA, length(tune_maxdepth))
   kw_tmp <- as.data.frame(matrix(0, n_c, length(tune_maxdepth)))
   # Loop over try-out values
-  repeat {
-    i <- i+1
+  for (i in seq_along(tune_maxdepth)){
     # Run model
     maxdepth <- tune_maxdepth[i]
     mob <- partykit::glmtree(as.formula(formula),
@@ -248,13 +244,12 @@ kw.mob = function(psa_dat, wt, rsp_name, formula, tune_maxdepth, covars,
     kw_tmp[,i] <- kw.wt(p_score.c = p_score_c.tmp[,i], p_score.s = p_score_s.tmp[,i],
                         svy.wt = svy.wt, Large = F)$pswt
     # Calculate covariate balance
-    psa_dat$wt_kw.tmp[rsp_name == 1] <- kw_tmp[,i]
-    smds[i+1] <- mean(abs(cobalt::bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat$wt_kw.tmp,
-                                          s.d.denom = "pooled", binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
-    # Check improvement in covariate balance
-    if (abs(smds[i] - smds[i+1]) < 0.001 | length(tune_maxdepth) == i) break
+    psa_dat[psa_dat[, rsp_name]==1, "wt_kw.tmp"] <- kw_tmp[,i]
+    smds[i] <- mean(abs(cobalt::bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat$wt_kw.tmp,
+                                        s.d.denom = "pooled", binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
   }
-  return(list(iter = i, pswt = kw_tmp, smds = smds, p_score_c = p_score_c.tmp, p_score_s = p_score_s.tmp))
+  best <- which.min(smds)
+  return(list(pswt = kw_tmp, smds = smds, best = best, p_score_c = p_score_c.tmp, p_score_s = p_score_s.tmp))
 }
 
 #' Calculate KW-CRF pseudo-weights
@@ -284,6 +279,7 @@ kw.mob = function(psa_dat, wt, rsp_name, formula, tune_maxdepth, covars,
 #' @return A list \cr
 #' pswt: A dataframe including KW pseudo-weights for each tuning parameter setting \cr
 #' smds: A vector of SMD for each set of KW pseudo-weights \cr
+#' best: Identifier for the KW pseudo-weights in pswt with the smallest SMD \cr
 #' p_score_c: A dataframe including propensity scores for non-probability sample units
 #' for each tuning parameter setting \cr
 #' p_score_s: A dataframe including propensity scores for probability sample units
@@ -300,8 +296,6 @@ kw.crf = function(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
   p_score_c.tmp <- data.frame(matrix(ncol = length(tune_mincriterion), nrow = n_c))
   p_score_s.tmp <- data.frame(matrix(ncol = length(tune_mincriterion), nrow = n_s))
   smds <- rep(NA, length(tune_mincriterion))
-  smds[1] <- mean(abs(cobalt::bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat[, wt],
-                                      s.d.denom = "pooled", binary = "std", method="weighting")$Balance[, "Diff.Adj"]))
   kw_tmp <- as.data.frame(matrix(0, n_c, length(tune_mincriterion)))
   # Loop over try-out values
   for (i in seq_along(tune_mincriterion)){
@@ -317,12 +311,12 @@ kw.crf = function(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
     kw_tmp[,i] <- kw.wt(p_score.c = p_score_c.tmp[,i], p_score.s = p_score_s.tmp[,i],
                         svy.wt = svy.wt, Large = F)$pswt
     # Calculate covariate balance
-    psa_dat$wt_kw.tmp[rsp_name == 1] <- kw_tmp[,i]
-    smds[i+1] <- mean(abs(cobalt::bal.tab(psa_dat[, covars], treat = psa_dat$trt, weights = psa_dat$wt_kw.tmp,
-                                          s.d.denom = "pooled", binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
-    }
-
-  return(list(pswt = kw_tmp, smds = smds, p_score_c = p_score_c.tmp, p_score_s = p_score_s.tmp))
+    psa_dat[psa_dat[, rsp_name]==1, "wt_kw.tmp"] <- kw_tmp[,i]
+    smds[i] <- mean(abs(cobalt::bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat$wt_kw.tmp,
+                                        s.d.denom = "pooled", binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
+  }
+  best <- which.min(smds)
+  return(list(pswt = kw_tmp, smds = smds, best = best, p_score_c = p_score_c.tmp, p_score_s = p_score_s.tmp))
 }
 
 #' Calculate KW-GBM pseudo-weights
@@ -352,8 +346,9 @@ kw.crf = function(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
 #' @param Large The cohort size is so large that it has to be divided into pieces. Default is FALSE.
 #' @param rm.s Remove unmatched survey units or not. Default is FALSE.
 #' @return A list \cr
-#' iter: Number of iteration for reaching convergence in SMD \cr
-#' pswt: A dataframe including KW pseudo-weights for each tuning parameter setting \cr
+#' pswt: A dataframe including KW pseudo-weights for
+#' each setting of tune_idepth with the best setting of tune_ntree \cr
+#' best: Identifier for the KW pseudo-weights in pswt with the smallest SMD \cr
 #' smds: A vector of SMD for each set of KW pseudo-weights \cr
 #' p_score_c: A dataframe including propensity scores for non-probability sample units
 #' for each tuning parameter setting \cr
@@ -373,18 +368,14 @@ kw.gbm = function(psa_dat, wt, rsp_name, formula, tune_idepth, tune_ntree, covar
   p_score_i_s <- data.frame(matrix(ncol = length(tune_ntree),  nrow = n_c))
   p_score_i_c <- data.frame(matrix(ncol = length(tune_ntree),  nrow = n_s))
   smds_o <- rep(NA, length(tune_idepth))
-  smds_i <- rep(NA, length(tune_ntree)+1)
-  smds_i[1] <- mean(abs(cobalt::bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat[, wt],
-                                        s.d.denom = "pooled", binary = "std", method="weighting")$Balance[, "Diff.Adj"]))
+  smds_i <- rep(NA, length(tune_ntree))
   kw_tmp_o <- as.data.frame(matrix(0, n_c, length(tune_idepth)))
   kw_tmp_i <- as.data.frame(matrix(0, n_c, length(tune_ntree)))
   # Outer loop over try-out values
   for (i in seq_along(tune_idepth)){
     idepth <- tune_idepth[i]
-    j <- 0
     # Inner loop over try-out values
-    repeat {
-      j <- j+1
+    for (j in seq_along(tune_ntree)){
       # Run model
       ntree <- tune_ntree[j]
       boost <- gbm::gbm(as.formula(formula),
@@ -401,23 +392,19 @@ kw.gbm = function(psa_dat, wt, rsp_name, formula, tune_idepth, tune_ntree, covar
       kw_tmp_i[, j] <- kw.wt(p_score.c = p_score_i_c[, j], p_score.s = p_score_i_s[,j],
                              svy.wt = svy.wt, Large = F)$pswt
       # Calculate covariate balance
-      psa_dat$wt_kw.tmp[rsp_name == 1] <- kw_tmp_i[, j]
-      smds_i[j+1] <- mean(abs(cobalt::bal.tab(psa_dat[, covars], treat = psa_dat$trt, weights = psa_dat$wt_kw.tmp,
-                                              s.d.denom = "pooled", binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
-      # Check improvement in covariate balance
-      if (abs(smds_i[j] - smds_i[j+1]) < 0.001 | length(tune_ntree) == j){
-        break
-      }
+      psa_dat[psa_dat[, rsp_name]==1, "wt_kw.tmp"] <- kw_tmp_i[, j]
+      smds_i[j] <- mean(abs(cobalt::bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat$wt_kw.tmp,
+                                            s.d.denom = "pooled", binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
     }
     # Select best KW weights of current iteration
-    best <- which.min(smds_i[2:(length(tune_ntree)+1)])
+    best <- which.min(smds_i)
     p_score_c.tmp[,i] <- p_score_i_c[, best]
     p_score_s.tmp[,i] <- p_score_i_s[, best]
     kw_tmp_o[,i] <- kw_tmp_i[, best]
-    smds_o[i] <- min(smds_i[2:(length(tune_ntree)+1)], na.rm = T)
+    smds_o[i] <- min(smds_i, na.rm = T)
   }
-
-  return(list(pswt = kw_tmp_o, smds = smds_o, p_score_c = p_score_c.tmp, p_score_s = p_score_s.tmp))
+  best_o <- which.min(smds_o)
+  return(list(pswt = kw_tmp_o, smds = smds_o, best = best_o, p_score_c = p_score_c.tmp, p_score_s = p_score_s.tmp))
 }
 
 #####################################################################################################################

@@ -41,6 +41,7 @@ kw.crf(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
 A list \cr
 pswt: A dataframe including KW pseudo-weights for each tuning parameter setting \cr
 smds: A vector of SMD for each set of KW pseudo-weights \cr
+best: Identifier for the KW pseudo-weights in pswt with the smallest SMD \cr
 p_score_c: A dataframe including propensity scores for non-probability sample units
 for each tuning parameter setting \cr
 p_score_s: A dataframe including propensity scores for probability sample units
