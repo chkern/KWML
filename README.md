@@ -29,20 +29,20 @@ For the KW-ML functions (`kw.mob()`, `kw.crf()`, `kw.gbm()`), tuning parameter g
 
 ``` {.r}
 kwmob <- kw.mob(simu_dat, "wt", "trt", 
-               "trt_f ~ x1+x2+x3+x4+x5+x6+x7 | x1+x2+x3+x4+x5+x6+x7",
-               tune_maxdepth = c(2, 3), 
-               covars = c("x1","x2","x3","x4","x5","x6","x7"))
+                "trt_f ~ x1+x2+x3+x4+x5+x6+x7 | x1+x2+x3+x4+x5+x6+x7",
+                tune_maxdepth = c(2, 3), 
+                covars = c("x1","x2","x3","x4","x5","x6","x7"))
 
 kwcrf <- kw.crf(simu_dat, "wt", "trt", 
-               "trt_f ~ x1+x2+x3+x4+x5+x6+x7",
-               tune_mincriterion = c(0.95, 0.9), 
-               covars = c("x1","x2","x3","x4","x5","x6","x7"))
+                "trt_f ~ x1+x2+x3+x4+x5+x6+x7",
+                tune_mincriterion = c(0.95, 0.9), 
+                covars = c("x1","x2","x3","x4","x5","x6","x7"))
 
 kwgbm <- kw.gbm(simu_dat, "wt", "trt", 
-               "trt ~ x1+x2+x3+x4+x5+x6+x7",
-               tune_idepth = 1:3,
-               tune_ntree = c(250, 500),
-               covars = c("x1","x2","x3","x4","x5","x6","x7"))       
+                "trt ~ x1+x2+x3+x4+x5+x6+x7",
+                tune_idepth = 1:3,
+                tune_ntree = c(250, 500),
+                covars = c("x1","x2","x3","x4","x5","x6","x7"))       
 ```
 
 Select KW-ML pseudo-weights with best covariate balance.
