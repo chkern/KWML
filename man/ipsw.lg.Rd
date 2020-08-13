@@ -9,10 +9,10 @@ ipsw.lg(psa_dat, wt, rsp_name, formula)
 \arguments{
 \item{psa_dat}{Dataframe of the combined non-probability and probability sample}
 
-\item{wt}{Name of the weight variable in psa_dat
+\item{wt}{Name of the weight variable in \code{psa_dat}
 (common weights of 1 for non-probability sample, and survey weights for probability sample)}
 
-\item{rsp_name}{Name of the non-probability sample membership indicator in psa_dat
+\item{rsp_name}{Name of the non-probability sample membership indicator in \code{psa_dat}
 (1 for non-probability sample units, and 0 for probability sample units)}
 
 \item{formula}{Formula of the regression model}
@@ -23,4 +23,10 @@ A vector of IPSW pseudo-weights
 \description{
 This function computes IPSW pseudo-weights using logistic regression to
 predict propensity scores.
+}
+\examples{
+# IPSW with example data
+ipsw_w <- ipsw.lg(simu_dat, "wt", "trt", "trt_f ~ x1+x2+x3+x4+x5+x6+x7")
+# Compute weighted mean of y in non-prob data
+sum((simu_dat$y[simu_dat$trt == 1]*ipsw_w)/sum(ipsw_w))
 }

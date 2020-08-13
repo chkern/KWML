@@ -18,19 +18,19 @@ kw.wt(p_score.c, p_score.s, svy.wt, h = NULL, mtch_v = NULL,
 (will be calculated corresponding to kernel function if not specified)}
 
 \item{krn}{Kernel function.
-"triang": triangular density on (-3, 3),
-"dnorm": standard normal density,
-"dnorm_t": truncated standard normal density on (-3, 3).}
+"\code{triang}": triangular density on (-3, 3),
+"\code{dnorm}": standard normal density,
+"\code{dnorm_t}": truncated standard normal density on (-3, 3).}
 
-\item{Large}{The cohort size is so large that it has to be divided into pieces. Default is FALSE.}
+\item{Large}{The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.}
 
-\item{rm.s}{Remove unmatched survey units or not. Default is FALSE.}
+\item{rm.s}{Remove unmatched survey units or not. Default is \code{FALSE}.}
 }
 \value{
 A list \cr
-pswt: KW pseudo-weights \cr
-delt.svy: Number of unmatched survey sample units \cr
-h: Bandwidth
+\code{pswt}: KW pseudo-weights \cr
+\code{delt.svy}: Number of unmatched survey sample units \cr
+\code{h}: Bandwidth
 }
 \description{
 This function computes KW pseudo-weights based on propensity scores
@@ -39,8 +39,8 @@ that are provided by the user.
 \details{
 If there are unmatched survey sample units, the program gives
 "The input bandwidth h is too small. Please choose a larger one!"
-If rm.s=TRUE, the program deletes unmatched survey sample units, and gives
+If \code{rm.s=TRUE}, the program deletes unmatched survey sample units, and gives
 a warning "records in the prob sample were not used because of a small bandwidth"
-If rm.s=FALSE, the program evenly distributes weights of unmatched survey sample units
+If \code{rm.s=FALSE}, the program evenly distributes weights of unmatched survey sample units
 to all non-probability sample units.
 }

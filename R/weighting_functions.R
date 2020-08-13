@@ -4,12 +4,17 @@
 #' predict propensity scores.
 #'
 #' @param psa_dat Dataframe of the combined non-probability and probability sample
-#' @param wt Name of the weight variable in psa_dat
+#' @param wt Name of the weight variable in \code{psa_dat}
 #' (common weights of 1 for non-probability sample, and survey weights for probability sample)
-#' @param rsp_name Name of the non-probability sample membership indicator in psa_dat
+#' @param rsp_name Name of the non-probability sample membership indicator in \code{psa_dat}
 #' (1 for non-probability sample units, and 0 for probability sample units)
 #' @param formula Formula of the regression model
 #' @return A vector of IPSW pseudo-weights
+#' @examples
+#' # IPSW with example data
+#' ipsw_w <- ipsw.lg(simu_dat, "wt", "trt", "trt_f ~ x1+x2+x3+x4+x5+x6+x7")
+#' # Compute weighted mean of y in non-prob data
+#' sum((simu_dat$y[simu_dat$trt == 1]*ipsw_w)/sum(ipsw_w))
 #' @export
 
 ipsw.lg = function(psa_dat, wt, rsp_name, formula){
@@ -29,9 +34,9 @@ ipsw.lg = function(psa_dat, wt, rsp_name, formula){
 #'
 #' If there are unmatched survey sample units, the program gives
 #' "The input bandwidth h is too small. Please choose a larger one!"
-#' If rm.s=TRUE, the program deletes unmatched survey sample units, and gives
+#' If \code{rm.s=TRUE}, the program deletes unmatched survey sample units, and gives
 #' a warning "records in the prob sample were not used because of a small bandwidth"
-#' If rm.s=FALSE, the program evenly distributes weights of unmatched survey sample units
+#' If \code{rm.s=FALSE}, the program evenly distributes weights of unmatched survey sample units
 #' to all non-probability sample units.
 #'
 #' @param p_score.c Predicted propensity scores for the non-probability sample
@@ -40,15 +45,15 @@ ipsw.lg = function(psa_dat, wt, rsp_name, formula){
 #' @param h Bandwidth parameter
 #' (will be calculated corresponding to kernel function if not specified)
 #' @param krn Kernel function.
-#' "triang": triangular density on (-3, 3),
-#' "dnorm": standard normal density,
-#' "dnorm_t": truncated standard normal density on (-3, 3).
-#' @param Large The cohort size is so large that it has to be divided into pieces. Default is FALSE.
-#' @param rm.s Remove unmatched survey units or not. Default is FALSE.
+#' "\code{triang}": triangular density on (-3, 3),
+#' "\code{dnorm}": standard normal density,
+#' "\code{dnorm_t}": truncated standard normal density on (-3, 3).
+#' @param Large The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.
+#' @param rm.s Remove unmatched survey units or not. Default is \code{FALSE}.
 #' @return A list \cr
-#' pswt: KW pseudo-weights \cr
-#' delt.svy: Number of unmatched survey sample units \cr
-#' h: Bandwidth
+#' \code{pswt}: KW pseudo-weights \cr
+#' \code{delt.svy}: Number of unmatched survey sample units \cr
+#' \code{h}: Bandwidth
 #' @export
 
 kw.wt = function(p_score.c, p_score.s, svy.wt, h = NULL, mtch_v = NULL, krn="triang", Large = F, rm.s = F){
@@ -147,23 +152,28 @@ kw.wt = function(p_score.c, p_score.s, svy.wt, h = NULL, mtch_v = NULL, krn="tri
 #' predict propensity scores.
 #'
 #' @param psa_dat Dataframe of the combined non-probability and probability sample
-#' @param wt Name of the weight variable in psa_dat
+#' @param wt Name of the weight variable in \code{psa_dat}
 #' (common weights of 1 for non-probability sample, and survey weights for probability sample)
-#' @param rsp_name Name of the non-probability sample membership indicator in psa_dat
+#' @param rsp_name Name of the non-probability sample membership indicator in \code{psa_dat}
 #' (1 for non-probability sample units, and 0 for probability sample units)
 #' @param formula Formula of the regression model
 #' @param h Bandwidth parameter
 #' (will be calculated corresponding to kernel function if not specified)
 #' @param krn Kernel function.
-#' "triang": triangular density on (-3, 3),
-#' "dnorm": standard normal density,
-#' "dnorm_t": truncated standard normal density on (-3, 3).
-#' @param Large The cohort size is so large that it has to be divided into pieces. Default is FALSE.
-#' @param rm.s Remove unmatched survey units or not. Default is FALSE.
+#' "\code{triang}": triangular density on (-3, 3),
+#' "\code{dnorm}": standard normal density,
+#' "\code{dnorm_t}": truncated standard normal density on (-3, 3).
+#' @param Large The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.
+#' @param rm.s Remove unmatched survey units or not. Default is \code{FALSE}.
 #' @return A list \cr
-#' pswt: KW pseudo-weights \cr
-#' delt.svy: Number of unmatched survey sample units \cr
-#' h: Bandwidth
+#' \code{pswt}: KW pseudo-weights \cr
+#' \code{delt.svy}: Number of unmatched survey sample units \cr
+#' \code{h}: Bandwidth
+#' @examples
+#' # KW-LG with example data
+#' kwlg_w <- kw.lg(simu_dat, "wt", "trt", "trt_f ~ x1+x2+x3+x4+x5+x6+x7")$pswt
+#' # Compute weighted mean of y in non-prob data
+#' sum((simu_dat$y[simu_dat$trt == 1]*kwlg_w)/sum(kwlg_w))
 #' @export
 
 kw.lg = function(psa_dat, wt, rsp_name, formula,
@@ -185,35 +195,45 @@ kw.lg = function(psa_dat, wt, rsp_name, formula,
 #' Calculate KW-MOB pseudo-weights
 #'
 #' This function computes KW pseudo-weights using model-based recursive partitioning
-#' (glmtree() in partykit package) to predict propensity scores.
+#' (\code{glmtree()} in \code{partykit} package) to predict propensity scores.
 #'
 #' @param psa_dat Dataframe of the combined non-probability and probability sample
-#' @param wt Name of the weight variable in psa_dat
+#' @param wt Name of the weight variable in \code{psa_dat}
 #' (common weights of 1 for non-probability sample, and survey weights for probability sample)
-#' @param rsp_name Name of the non-probability sample membership indicator in psa_dat
+#' @param rsp_name Name of the non-probability sample membership indicator in \code{psa_dat}
 #' (1 for non-probability sample units, and 0 for probability sample units)
 #' @param formula Formula of the propensity model
-#' (see glmtree() in partykit package)
+#' (see \code{glmtree()} in \code{partykit} package)
 #' @param tune_maxdepth A vector of values for the tuning parameter maxdepth
-#' (see glmtree() in partykit package)
+#' (see \code{glmtree()} in \code{partykit} package)
 #' @param covars A vector of covariate names for standardized mean differences
-#' (SMD; covariate balance) calculation (see bal.tab() in cobalt package)
+#' (SMD; covariate balance) calculation (see \code{bal.tab()} in \code{cobalt} package)
 #' @param h Bandwidth parameter
 #' (will be calculated corresponding to kernel function if not specified)
 #' @param krn Kernel function.
-#' "triang": triangular density on (-3, 3),
-#' "dnorm": standard normal density,
-#' "dnorm_t": truncated standard normal density on (-3, 3).
-#' @param Large The cohort size is so large that it has to be divided into pieces. Default is FALSE.
-#' @param rm.s Remove unmatched survey units or not. Default is FALSE.
+#' "\code{triang}": triangular density on (-3, 3),
+#' "\code{dnorm}": standard normal density,
+#' "\code{dnorm_t}": truncated standard normal density on (-3, 3).
+#' @param Large The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.
+#' @param rm.s Remove unmatched survey units or not. Default is \code{FALSE}.
 #' @return A list \cr
-#' pswt: A dataframe including KW pseudo-weights for each tuning parameter setting \cr
-#' smds: A vector of SMD for each set of KW pseudo-weights \cr
-#' best: Identifier for the KW pseudo-weights in pswt with the smallest SMD \cr
-#' p_score_c: A dataframe including propensity scores for non-probability sample units
+#' \code{pswt}: A dataframe including KW pseudo-weights for each tuning parameter setting \cr
+#' \code{smds}: A vector of SMD for each set of KW pseudo-weights \cr
+#' \code{best}: Identifier for the KW pseudo-weights in pswt with the smallest SMD \cr
+#' \code{p_score_c}: A dataframe including propensity scores for non-probability sample units
 #' for each tuning parameter setting \cr
-#' p_score_s: A dataframe including propensity scores for probability sample units
+#' \code{p_score_s}: A dataframe including propensity scores for probability sample units
 #' for each tuning parameter setting
+#' @examples
+#' # KW-MOB with example data
+#' kwmob <- kw.mob(simu_dat, "wt", "trt",
+#'                 "trt_f ~ x1+x2+x3+x4+x5+x6+x7 | x1+x2+x3+x4+x5+x6+x7",
+#'                 tune_maxdepth = c(2, 3),
+#'                 covars = c("x1","x2","x3","x4","x5","x6","x7"))
+#' # Select KW-MOB pseudo-weights with best covariate balance
+#' kwmob_w <- kwmob$pswt[, kwmob$best]
+#' # Compute weighted mean of y in non-prob data
+#' sum((simu_dat$y[simu_dat$trt == 1]*kwmob_w)/sum(kwmob_w))
 #' @export
 
 kw.mob = function(psa_dat, wt, rsp_name, formula, tune_maxdepth, covars,
@@ -255,35 +275,45 @@ kw.mob = function(psa_dat, wt, rsp_name, formula, tune_maxdepth, covars,
 #' Calculate KW-CRF pseudo-weights
 #'
 #' This function computes KW pseudo-weights using conditional random forests
-#' (cforest() in partykit package) to predict propensity scores.
+#' (\code{cforest()} in \code{partykit} package) to predict propensity scores.
 #'
 #' @param psa_dat Dataframe of the combined non-probability and probability sample
-#' @param wt Name of the weight variable in psa_dat
+#' @param wt Name of the weight variable in \code{psa_dat}
 #' (common weights of 1 for non-probability sample, and survey weights for probability sample)
-#' @param rsp_name Name of the non-probability sample membership indicator in psa_dat
+#' @param rsp_name Name of the non-probability sample membership indicator in \code{psa_dat}
 #' (1 for non-probability sample units, and 0 for probability sample units)
 #' @param formula Formula of the propensity model
-#' (see cforest() in partykit package)
+#' (see \code{cforest()} in \code{partykit} package)
 #' @param tune_mincriterion A vector of values for the tuning parameter mincriterion
-#' (see cforest() in partykit package)
+#' (see \code{cforest()} in \code{partykit} package)
 #' @param covars A vector of covariate names for standardized mean differences
-#' (SMD; covariate balance) calculation (see bal.tab() in cobalt package)
+#' (SMD; covariate balance) calculation (see \code{bal.tab()} in \code{cobalt} package)
 #' @param h Bandwidth parameter
 #' (will be calculated corresponding to kernel function if not specified)
 #' @param krn Kernel function.
-#' "triang": triangular density on (-3, 3),
-#' "dnorm": standard normal density,
-#' "dnorm_t": truncated standard normal density on (-3, 3).
-#' @param Large The cohort size is so large that it has to be divided into pieces. Default is FALSE.
-#' @param rm.s Remove unmatched survey units or not. Default is FALSE.
+#' "\code{triang}": triangular density on (-3, 3),
+#' "\code{dnorm}": standard normal density,
+#' "\code{dnorm_t}": truncated standard normal density on (-3, 3).
+#' @param Large The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.
+#' @param rm.s Remove unmatched survey units or not. Default is \code{FALSE}.
 #' @return A list \cr
-#' pswt: A dataframe including KW pseudo-weights for each tuning parameter setting \cr
-#' smds: A vector of SMD for each set of KW pseudo-weights \cr
-#' best: Identifier for the KW pseudo-weights in pswt with the smallest SMD \cr
-#' p_score_c: A dataframe including propensity scores for non-probability sample units
+#' \code{pswt}: A dataframe including KW pseudo-weights for each tuning parameter setting \cr
+#' \code{smds}: A vector of SMD for each set of KW pseudo-weights \cr
+#' \code{best}: Identifier for the KW pseudo-weights in pswt with the smallest SMD \cr
+#' \code{p_score_c}: A dataframe including propensity scores for non-probability sample units
 #' for each tuning parameter setting \cr
-#' p_score_s: A dataframe including propensity scores for probability sample units
+#' \code{p_score_s}: A dataframe including propensity scores for probability sample units
 #' for each tuning parameter setting
+#' @examples
+#' # KW-CRF with example data
+#' kwcrf <- kw.crf(simu_dat, "wt", "trt",
+#'                 "trt_f ~ x1+x2+x3+x4+x5+x6+x7",
+#'                 tune_mincriterion = c(0.95, 0.9),
+#'                 covars = c("x1","x2","x3","x4","x5","x6","x7"))
+#' # Select KW-CRF pseudo-weights with best covariate balance
+#' kwcrf_w <- kwcrf$pswt[, kwcrf$best]
+#' # Compute weighted mean of y in non-prob data
+#' sum((simu_dat$y[simu_dat$trt == 1]*kwcrf_w)/sum(kwcrf_w))
 #' @export
 
 kw.crf = function(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
@@ -322,38 +352,49 @@ kw.crf = function(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
 #' Calculate KW-GBM pseudo-weights
 #'
 #' This function computes KW pseudo-weights using gradient tree boosting
-#' (gbm() in gbm package) to predict propensity scores.
+#' (\code{gbm()} in \code{gbm} package) to predict propensity scores.
 #'
 #' @param psa_dat Dataframe of the combined non-probability and probability sample
-#' @param wt Name of the weight variable in psa_dat
+#' @param wt Name of the weight variable in \code{psa_dat}
 #' (common weights of 1 for non-probability sample, and survey weights for probability sample)
-#' @param rsp_name Name of the non-probability sample membership indicator in psa_dat
+#' @param rsp_name Name of the non-probability sample membership indicator in \code{psa_dat}
 #' (1 for non-probability sample units, and 0 for probability sample units)
 #' @param formula Formula of the propensity model
-#' (see gbm() in gbm package)
-#' @param tune_idepth A vector of values for the tuning parameter interaction.depth
-#' (see gbm() in gbm package)
-#' @param tune_ntree A vector of values for the tuning parameter n.trees
-#' (see gbm() in gbm package)
+#' (see \code{gbm()} in \code{gbm} package)
+#' @param tune_idepth A vector of values for the tuning parameter \code{interaction.depth}
+#' (see \code{gbm()} in \code{gbm} package)
+#' @param tune_ntree A vector of values for the tuning parameter \code{n.trees}
+#' (see \code{gbm()} in \code{gbm} package)
 #' @param covars A vector of covariate names for standardized mean differences
-#' (SMD; covariate balance) calculation (see bal.tab() in cobalt package)
+#' (SMD; covariate balance) calculation (see \code{bal.tab()} in \code{cobalt} package)
 #' @param h Bandwidth parameter
 #' (will be calculated corresponding to kernel function if not specified)
 #' @param krn Kernel function.
-#' "triang": triangular density on (-3, 3),
-#' "dnorm": standard normal density,
-#' "dnorm_t": truncated standard normal density on (-3, 3).
-#' @param Large The cohort size is so large that it has to be divided into pieces. Default is FALSE.
-#' @param rm.s Remove unmatched survey units or not. Default is FALSE.
+#' "\code{triang}": triangular density on (-3, 3),
+#' "\code{dnorm}": standard normal density,
+#' "\code{dnorm_t}": truncated standard normal density on (-3, 3).
+#' @param Large The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.
+#' @param rm.s Remove unmatched survey units or not. Default is \code{FALSE}.
 #' @return A list \cr
-#' pswt: A dataframe including KW pseudo-weights for
-#' each setting of tune_idepth with the best setting of tune_ntree \cr
-#' best: Identifier for the KW pseudo-weights in pswt with the smallest SMD \cr
-#' smds: A vector of SMD for each set of KW pseudo-weights \cr
-#' p_score_c: A dataframe including propensity scores for non-probability sample units
+#' \code{pswt}: A dataframe including KW pseudo-weights for
+#' each setting of \code{tune_idepth} with the best setting of \code{tune_ntree} \cr
+#' \code{best}: Identifier for the KW pseudo-weights in pswt with the smallest SMD \cr
+#' \code{smds}: A vector of SMD for each set of KW pseudo-weights \cr
+#' \code{p_score_c}: A dataframe including propensity scores for non-probability sample units
 #' for each tuning parameter setting \cr
-#' p_score_s: A dataframe including propensity scores for probability sample units
+#' \code{p_score_s}: A dataframe including propensity scores for probability sample units
 #' for each tuning parameter setting
+#' @examples
+#' # KW-GBM with example data
+#' kwgbm <- kw.gbm(simu_dat, "wt", "trt",
+#'                 "trt ~ x1+x2+x3+x4+x5+x6+x7",
+#'                 tune_idepth = 1:3,
+#'                 tune_ntree = c(250, 500),
+#'                 covars = c("x1","x2","x3","x4","x5","x6","x7"))
+#' # Select KW-GBM pseudo-weights with best covariate balance
+#' kwgbm_w <- kwgbm$pswt[, kwgbm$best]
+#' # Compute weighted mean of y in non-prob data
+#' sum((simu_dat$y[simu_dat$trt == 1]*kwgbm_w)/sum(kwgbm_w))
 #' @export
 
 kw.gbm = function(psa_dat, wt, rsp_name, formula, tune_idepth, tune_ntree, covars,

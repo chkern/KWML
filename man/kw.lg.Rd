@@ -10,10 +10,10 @@ kw.lg(psa_dat, wt, rsp_name, formula, h = NULL, krn = "triang",
 \arguments{
 \item{psa_dat}{Dataframe of the combined non-probability and probability sample}
 
-\item{wt}{Name of the weight variable in psa_dat
+\item{wt}{Name of the weight variable in \code{psa_dat}
 (common weights of 1 for non-probability sample, and survey weights for probability sample)}
 
-\item{rsp_name}{Name of the non-probability sample membership indicator in psa_dat
+\item{rsp_name}{Name of the non-probability sample membership indicator in \code{psa_dat}
 (1 for non-probability sample units, and 0 for probability sample units)}
 
 \item{formula}{Formula of the regression model}
@@ -22,21 +22,27 @@ kw.lg(psa_dat, wt, rsp_name, formula, h = NULL, krn = "triang",
 (will be calculated corresponding to kernel function if not specified)}
 
 \item{krn}{Kernel function.
-"triang": triangular density on (-3, 3),
-"dnorm": standard normal density,
-"dnorm_t": truncated standard normal density on (-3, 3).}
+"\code{triang}": triangular density on (-3, 3),
+"\code{dnorm}": standard normal density,
+"\code{dnorm_t}": truncated standard normal density on (-3, 3).}
 
-\item{Large}{The cohort size is so large that it has to be divided into pieces. Default is FALSE.}
+\item{Large}{The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.}
 
-\item{rm.s}{Remove unmatched survey units or not. Default is FALSE.}
+\item{rm.s}{Remove unmatched survey units or not. Default is \code{FALSE}.}
 }
 \value{
 A list \cr
-pswt: KW pseudo-weights \cr
-delt.svy: Number of unmatched survey sample units \cr
-h: Bandwidth
+\code{pswt}: KW pseudo-weights \cr
+\code{delt.svy}: Number of unmatched survey sample units \cr
+\code{h}: Bandwidth
 }
 \description{
 This function computes KW pseudo-weights using logistic regression to
 predict propensity scores.
+}
+\examples{
+# KW-LG with example data
+kwlg_w <- kw.lg(simu_dat, "wt", "trt", "trt_f ~ x1+x2+x3+x4+x5+x6+x7")$pswt
+# Compute weighted mean of y in non-prob data
+sum((simu_dat$y[simu_dat$trt == 1]*kwlg_w)/sum(kwlg_w))
 }

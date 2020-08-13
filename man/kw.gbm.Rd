@@ -10,48 +10,60 @@ kw.gbm(psa_dat, wt, rsp_name, formula, tune_idepth, tune_ntree, covars,
 \arguments{
 \item{psa_dat}{Dataframe of the combined non-probability and probability sample}
 
-\item{wt}{Name of the weight variable in psa_dat
+\item{wt}{Name of the weight variable in \code{psa_dat}
 (common weights of 1 for non-probability sample, and survey weights for probability sample)}
 
-\item{rsp_name}{Name of the non-probability sample membership indicator in psa_dat
+\item{rsp_name}{Name of the non-probability sample membership indicator in \code{psa_dat}
 (1 for non-probability sample units, and 0 for probability sample units)}
 
 \item{formula}{Formula of the propensity model
-(see gbm() in gbm package)}
+(see \code{gbm()} in \code{gbm} package)}
 
-\item{tune_idepth}{A vector of values for the tuning parameter interaction.depth
-(see gbm() in gbm package)}
+\item{tune_idepth}{A vector of values for the tuning parameter \code{interaction.depth}
+(see \code{gbm()} in \code{gbm} package)}
 
-\item{tune_ntree}{A vector of values for the tuning parameter n.trees
-(see gbm() in gbm package)}
+\item{tune_ntree}{A vector of values for the tuning parameter \code{n.trees}
+(see \code{gbm()} in \code{gbm} package)}
 
 \item{covars}{A vector of covariate names for standardized mean differences
-(SMD; covariate balance) calculation (see bal.tab() in cobalt package)}
+(SMD; covariate balance) calculation (see \code{bal.tab()} in \code{cobalt} package)}
 
 \item{h}{Bandwidth parameter
 (will be calculated corresponding to kernel function if not specified)}
 
 \item{krn}{Kernel function.
-"triang": triangular density on (-3, 3),
-"dnorm": standard normal density,
-"dnorm_t": truncated standard normal density on (-3, 3).}
+"\code{triang}": triangular density on (-3, 3),
+"\code{dnorm}": standard normal density,
+"\code{dnorm_t}": truncated standard normal density on (-3, 3).}
 
-\item{Large}{The cohort size is so large that it has to be divided into pieces. Default is FALSE.}
+\item{Large}{The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.}
 
-\item{rm.s}{Remove unmatched survey units or not. Default is FALSE.}
+\item{rm.s}{Remove unmatched survey units or not. Default is \code{FALSE}.}
 }
 \value{
 A list \cr
-pswt: A dataframe including KW pseudo-weights for
-each setting of tune_idepth with the best setting of tune_ntree \cr
-best: Identifier for the KW pseudo-weights in pswt with the smallest SMD \cr
-smds: A vector of SMD for each set of KW pseudo-weights \cr
-p_score_c: A dataframe including propensity scores for non-probability sample units
+\code{pswt}: A dataframe including KW pseudo-weights for
+each setting of \code{tune_idepth} with the best setting of \code{tune_ntree} \cr
+\code{best}: Identifier for the KW pseudo-weights in pswt with the smallest SMD \cr
+\code{smds}: A vector of SMD for each set of KW pseudo-weights \cr
+\code{p_score_c}: A dataframe including propensity scores for non-probability sample units
 for each tuning parameter setting \cr
-p_score_s: A dataframe including propensity scores for probability sample units
+\code{p_score_s}: A dataframe including propensity scores for probability sample units
 for each tuning parameter setting
 }
 \description{
 This function computes KW pseudo-weights using gradient tree boosting
-(gbm() in gbm package) to predict propensity scores.
+(\code{gbm()} in \code{gbm} package) to predict propensity scores.
+}
+\examples{
+# KW-GBM with example data
+kwgbm <- kw.gbm(simu_dat, "wt", "trt",
+                "trt ~ x1+x2+x3+x4+x5+x6+x7",
+                tune_idepth = 1:3,
+                tune_ntree = c(250, 500),
+                covars = c("x1","x2","x3","x4","x5","x6","x7"))
+# Select KW-GBM pseudo-weights with best covariate balance
+kwgbm_w <- kwgbm$pswt[, kwgbm$best]
+# Compute weighted mean of y in non-prob data
+sum((simu_dat$y[simu_dat$trt == 1]*kwgbm_w)/sum(kwgbm_w))
 }

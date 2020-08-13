@@ -10,44 +10,55 @@ kw.crf(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
 \arguments{
 \item{psa_dat}{Dataframe of the combined non-probability and probability sample}
 
-\item{wt}{Name of the weight variable in psa_dat
+\item{wt}{Name of the weight variable in \code{psa_dat}
 (common weights of 1 for non-probability sample, and survey weights for probability sample)}
 
-\item{rsp_name}{Name of the non-probability sample membership indicator in psa_dat
+\item{rsp_name}{Name of the non-probability sample membership indicator in \code{psa_dat}
 (1 for non-probability sample units, and 0 for probability sample units)}
 
 \item{formula}{Formula of the propensity model
-(see cforest() in partykit package)}
+(see \code{cforest()} in \code{partykit} package)}
 
 \item{tune_mincriterion}{A vector of values for the tuning parameter mincriterion
-(see cforest() in partykit package)}
+(see \code{cforest()} in \code{partykit} package)}
 
 \item{covars}{A vector of covariate names for standardized mean differences
-(SMD; covariate balance) calculation (see bal.tab() in cobalt package)}
+(SMD; covariate balance) calculation (see \code{bal.tab()} in \code{cobalt} package)}
 
 \item{h}{Bandwidth parameter
 (will be calculated corresponding to kernel function if not specified)}
 
 \item{krn}{Kernel function.
-"triang": triangular density on (-3, 3),
-"dnorm": standard normal density,
-"dnorm_t": truncated standard normal density on (-3, 3).}
+"\code{triang}": triangular density on (-3, 3),
+"\code{dnorm}": standard normal density,
+"\code{dnorm_t}": truncated standard normal density on (-3, 3).}
 
-\item{Large}{The cohort size is so large that it has to be divided into pieces. Default is FALSE.}
+\item{Large}{The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.}
 
-\item{rm.s}{Remove unmatched survey units or not. Default is FALSE.}
+\item{rm.s}{Remove unmatched survey units or not. Default is \code{FALSE}.}
 }
 \value{
 A list \cr
-pswt: A dataframe including KW pseudo-weights for each tuning parameter setting \cr
-smds: A vector of SMD for each set of KW pseudo-weights \cr
-best: Identifier for the KW pseudo-weights in pswt with the smallest SMD \cr
-p_score_c: A dataframe including propensity scores for non-probability sample units
+\code{pswt}: A dataframe including KW pseudo-weights for each tuning parameter setting \cr
+\code{smds}: A vector of SMD for each set of KW pseudo-weights \cr
+\code{best}: Identifier for the KW pseudo-weights in pswt with the smallest SMD \cr
+\code{p_score_c}: A dataframe including propensity scores for non-probability sample units
 for each tuning parameter setting \cr
-p_score_s: A dataframe including propensity scores for probability sample units
+\code{p_score_s}: A dataframe including propensity scores for probability sample units
 for each tuning parameter setting
 }
 \description{
 This function computes KW pseudo-weights using conditional random forests
-(cforest() in partykit package) to predict propensity scores.
+(\code{cforest()} in \code{partykit} package) to predict propensity scores.
+}
+\examples{
+# KW-CRF with example data
+kwcrf <- kw.crf(simu_dat, "wt", "trt",
+                "trt_f ~ x1+x2+x3+x4+x5+x6+x7",
+                tune_mincriterion = c(0.95, 0.9),
+                covars = c("x1","x2","x3","x4","x5","x6","x7"))
+# Select KW-CRF pseudo-weights with best covariate balance
+kwcrf_w <- kwcrf$pswt[, kwcrf$best]
+# Compute weighted mean of y in non-prob data
+sum((simu_dat$y[simu_dat$trt == 1]*kwcrf_w)/sum(kwcrf_w))
 }
