@@ -66,3 +66,15 @@ sum((simu_dat$y[simu_dat$trt == 1]*kwgbm_w)/sum(kwgbm_w))
 ```
 
 ### Citation 
+
+``` {.r}
+@Article{KernLiWang2020,
+  Title    = {Boosted Kernel Weighting – Using Statistical Learning to Improve Inference from Nonprobability Samples},
+  Author   = {Kern, C. AND Li, Y. AND Wang, L.},
+  Journal  = {Journal of Survey Statistics and Methodology},
+  Year     = {in press},
+  Number   = {x},
+  Pages    = {xx-xx},
+  Volume   = {x}
+}
+```
