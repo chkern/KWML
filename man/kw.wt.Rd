@@ -4,8 +4,8 @@
 \alias{kw.wt}
 \title{Calculate KW pseudo-weights given propensity scores}
 \usage{
-kw.wt(p_score.c, p_score.s, svy.wt, h = NULL, mtch_v = NULL,
-  krn = "triang", Large = F, rm.s = F)
+kw.wt(p_score.c, p_score.s, svy.wt, h = NULL, krn = "triang",
+  Large = F, rm.s = F)
 }
 \arguments{
 \item{p_score.c}{Predicted propensity scores for the non-probability sample}
