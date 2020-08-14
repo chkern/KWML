@@ -56,7 +56,7 @@ ipsw.lg = function(psa_dat, wt, rsp_name, formula){
 #' \code{h}: Bandwidth
 #' @export
 
-kw.wt = function(p_score.c, p_score.s, svy.wt, h = NULL, mtch_v = NULL, krn="triang", Large = F, rm.s = F){
+kw.wt = function(p_score.c, p_score.s, svy.wt, h=NULL, krn="triang", Large = F, rm.s = F){
   # get the name of kernel function
   # calculate bandwidth according to the kernel function
   #triangular density
@@ -66,13 +66,9 @@ kw.wt = function(p_score.c, p_score.s, svy.wt, h = NULL, mtch_v = NULL, krn="tri
   # create signed distance matrix
   m = length(p_score.c)
   n = length(p_score.s)
-    if (Large == F){
+  if (Large == F){
     sgn_dist_mtx = outer(p_score.s, p_score.c, FUN = "-")
     krn_num = krnfun(sgn_dist_mtx/h)
-    if(is.null(mtch_v)){
-      adj_m = 1
-    }else{adj_m=outer(mtch_v[1:n], mtch_v[(n+1):(n+m)], FUN='==')}
-    krn_num = krn_num*adj_m
     row.krn = rowSums(krn_num)
     sum_0.s = (row.krn==0)
     delt.svy = sum(sum_0.s)
