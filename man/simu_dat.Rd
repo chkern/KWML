@@ -6,7 +6,7 @@
 \title{Example data set}
 \format{A data frame with 4000 rows and 11 variables:
 \describe{
-  \item{x1, ..., x7}{Covariates}
+  \item{x1, x2, x3, x4, x5, x6, x7}{Covariates}
   \item{y}{Outcome}
   \item{wt}{Survey weights (= 1 for non-probability sample units)}
   \item{trt}{Sample membership indicator (numeric)}
