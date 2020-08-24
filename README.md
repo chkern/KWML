@@ -1,5 +1,9 @@
 # KW-ML for R
 
+<!-- badges: start -->
+[![Travis build status](https://travis-ci.org/chkern/KWML.svg?branch=master)](https://travis-ci.org/chkern/KWML)
+<!-- badges: end -->
+
 R package for "Boosted Kernel Weighting – Using Statistical Learning to Improve Inference from Nonprobability Samples"
 
 Implements functions for inverse propensity-score weighting (`ipsw.lg()`), kernel weights based on logistic regression (`kw.lg()`), and kernel weights based on machine learning methods (`kw.mob()`, `kw.crf()`, `kw.gbm()`).
