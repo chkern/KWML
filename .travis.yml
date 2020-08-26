@@ -4,3 +4,10 @@ language: R
 cache: packages
 
 warnings_are_errors: false
+
+matrix:
+  include:
+    - r: 3.6
+    - r: release
+    - dist: trusty
+    - os: osx
