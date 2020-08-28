@@ -5,7 +5,7 @@
 \title{Calculate KW-GBM pseudo-weights}
 \usage{
 kw.gbm(psa_dat, wt, rsp_name, formula, tune_idepth, tune_ntree, covars,
-  h = NULL, krn = "triang", Large = F, rm.s = F)
+  h = NULL, krn = "triang", large = F, rm.s = F)
 }
 \arguments{
 \item{psa_dat}{Dataframe of the combined non-probability and probability sample}
@@ -36,7 +36,7 @@ kw.gbm(psa_dat, wt, rsp_name, formula, tune_idepth, tune_ntree, covars,
 "\code{dnorm}": standard normal density,
 "\code{dnorm_t}": truncated standard normal density on (-3, 3).}
 
-\item{Large}{The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.}
+\item{large}{The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.}
 
 \item{rm.s}{Remove unmatched survey units or not. Default is \code{FALSE}.}
 }

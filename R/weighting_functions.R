@@ -48,7 +48,7 @@ ipsw.lg = function(psa_dat, wt, rsp_name, formula){
 #' "\code{triang}": triangular density on (-3, 3),
 #' "\code{dnorm}": standard normal density,
 #' "\code{dnorm_t}": truncated standard normal density on (-3, 3).
-#' @param Large The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.
+#' @param large The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.
 #' @param rm.s Remove unmatched survey units or not. Default is \code{FALSE}.
 #' @return A list \cr
 #' \code{pswt}: KW pseudo-weights \cr
@@ -56,7 +56,7 @@ ipsw.lg = function(psa_dat, wt, rsp_name, formula){
 #' \code{h}: Bandwidth
 #' @export
 
-kw.wt = function(p_score.c, p_score.s, svy.wt, h=NULL, krn="triang", Large = F, rm.s = F){
+kw.wt = function(p_score.c, p_score.s, svy.wt, h = NULL, krn = "triang", large = F, rm.s = F){
   # get the name of kernel function
   # calculate bandwidth according to the kernel function
   #triangular density
@@ -66,7 +66,7 @@ kw.wt = function(p_score.c, p_score.s, svy.wt, h=NULL, krn="triang", Large = F, 
   # create signed distance matrix
   m = length(p_score.c)
   n = length(p_score.s)
-  if (Large == F){
+  if (large == F){
     sgn_dist_mtx = outer(p_score.s, p_score.c, FUN = "-")
     krn_num = krnfun(sgn_dist_mtx/h)
     row.krn = rowSums(krn_num)
@@ -159,7 +159,7 @@ kw.wt = function(p_score.c, p_score.s, svy.wt, h=NULL, krn="triang", Large = F, 
 #' "\code{triang}": triangular density on (-3, 3),
 #' "\code{dnorm}": standard normal density,
 #' "\code{dnorm_t}": truncated standard normal density on (-3, 3).
-#' @param Large The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.
+#' @param large The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.
 #' @param rm.s Remove unmatched survey units or not. Default is \code{FALSE}.
 #' @return A list \cr
 #' \code{pswt}: KW pseudo-weights \cr
@@ -173,7 +173,7 @@ kw.wt = function(p_score.c, p_score.s, svy.wt, h=NULL, krn="triang", Large = F, 
 #' @export
 
 kw.lg = function(psa_dat, wt, rsp_name, formula,
-                 h = NULL, krn = "triang", Large = F, rm.s = F){
+                 h = NULL, krn = "triang", large = F, rm.s = F){
   svy.wt = psa_dat[psa_dat[, rsp_name]==0, wt]
   n = dim(psa_dat)[1]
   svyds = survey::svydesign(ids = ~1, weight = rep(1, n), data = psa_dat)
@@ -184,7 +184,7 @@ kw.lg = function(psa_dat, wt, rsp_name, formula,
   # Propensity scores for the survey sample
   p_score.s = p_score[psa_dat[,rsp_name]==0]
   out = kw.wt(p_score.c = p_score.c, p_score.s = p_score.s,
-              svy.wt = svy.wt, h = h, krn = krn, Large = Large, rm.s = rm.s)
+              svy.wt = svy.wt, h = h, krn = krn, large = large, rm.s = rm.s)
   return(list(pswt = out$pswt, delt.svy = out$delt.svy, h = out$h))
 }
 
@@ -210,7 +210,7 @@ kw.lg = function(psa_dat, wt, rsp_name, formula,
 #' "\code{triang}": triangular density on (-3, 3),
 #' "\code{dnorm}": standard normal density,
 #' "\code{dnorm_t}": truncated standard normal density on (-3, 3).
-#' @param Large The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.
+#' @param large The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.
 #' @param rm.s Remove unmatched survey units or not. Default is \code{FALSE}.
 #' @return A list \cr
 #' \code{pswt}: A dataframe including KW pseudo-weights for each tuning parameter setting \cr
@@ -233,7 +233,7 @@ kw.lg = function(psa_dat, wt, rsp_name, formula,
 #' @export
 
 kw.mob = function(psa_dat, wt, rsp_name, formula, tune_maxdepth, covars,
-                  h = NULL, krn = "triang", Large = F, rm.s = F){
+                  h = NULL, krn = "triang", large = F, rm.s = F){
   svy.wt <- psa_dat[psa_dat[, rsp_name]==0, wt]
   psa_dat$wt_kw.tmp <- psa_dat[, wt]
   n_c <- sum(psa_dat[, rsp_name]==1)
@@ -258,7 +258,7 @@ kw.mob = function(psa_dat, wt, rsp_name, formula, tune_maxdepth, covars,
     p_score_s.tmp[, i] <- p_score[psa_dat[, rsp_name]==0, i]
     # Calculate KW weights
     kw_tmp[,i] <- kw.wt(p_score.c = p_score_c.tmp[,i], p_score.s = p_score_s.tmp[,i],
-                        svy.wt = svy.wt, Large = F)$pswt
+                        svy.wt = svy.wt, large = F)$pswt
     # Calculate covariate balance
     psa_dat[psa_dat[, rsp_name]==1, "wt_kw.tmp"] <- kw_tmp[,i]
     smds[i] <- mean(abs(smd(psa_dat, wt = "wt_kw.tmp", rsp_name = rsp_name, covars = covars)))
@@ -289,7 +289,7 @@ kw.mob = function(psa_dat, wt, rsp_name, formula, tune_maxdepth, covars,
 #' "\code{triang}": triangular density on (-3, 3),
 #' "\code{dnorm}": standard normal density,
 #' "\code{dnorm_t}": truncated standard normal density on (-3, 3).
-#' @param Large The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.
+#' @param large The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.
 #' @param rm.s Remove unmatched survey units or not. Default is \code{FALSE}.
 #' @return A list \cr
 #' \code{pswt}: A dataframe including KW pseudo-weights for each tuning parameter setting \cr
@@ -312,7 +312,7 @@ kw.mob = function(psa_dat, wt, rsp_name, formula, tune_maxdepth, covars,
 #' @export
 
 kw.crf = function(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
-                  h = NULL, krn = "triang", Large = F, rm.s = F){
+                  h = NULL, krn = "triang", large = F, rm.s = F){
   svy.wt <- psa_dat[psa_dat[, rsp_name]==0, wt]
   psa_dat$wt_kw.tmp <- psa_dat[, wt]
   n_c <- sum(psa_dat[, rsp_name]==1)
@@ -334,7 +334,7 @@ kw.crf = function(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
     p_score_s.tmp[, i] <- p_score[psa_dat[, rsp_name]==0, i]
     # Calculate KW weights
     kw_tmp[,i] <- kw.wt(p_score.c = p_score_c.tmp[,i], p_score.s = p_score_s.tmp[,i],
-                        svy.wt = svy.wt, Large = F)$pswt
+                        svy.wt = svy.wt, large = F)$pswt
     # Calculate covariate balance
     psa_dat[psa_dat[, rsp_name]==1, "wt_kw.tmp"] <- kw_tmp[,i]
     smds[i] <- mean(abs(smd(psa_dat, wt = "wt_kw.tmp", rsp_name = rsp_name, covars = covars)))
@@ -367,7 +367,7 @@ kw.crf = function(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
 #' "\code{triang}": triangular density on (-3, 3),
 #' "\code{dnorm}": standard normal density,
 #' "\code{dnorm_t}": truncated standard normal density on (-3, 3).
-#' @param Large The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.
+#' @param large The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.
 #' @param rm.s Remove unmatched survey units or not. Default is \code{FALSE}.
 #' @return A list \cr
 #' \code{pswt}: A dataframe including KW pseudo-weights for
@@ -392,7 +392,7 @@ kw.crf = function(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
 #' @export
 
 kw.gbm = function(psa_dat, wt, rsp_name, formula, tune_idepth, tune_ntree, covars,
-                  h = NULL, krn = "triang", Large = F, rm.s = F){
+                  h = NULL, krn = "triang", large = F, rm.s = F){
   svy.wt <- psa_dat[psa_dat[, rsp_name]==0, wt]
   psa_dat$wt_kw.tmp <- psa_dat[, wt]
   n_c <- sum(psa_dat[, rsp_name]==1)
@@ -425,7 +425,7 @@ kw.gbm = function(psa_dat, wt, rsp_name, formula, tune_idepth, tune_ntree, covar
       p_score_i_s[, j] <- p_scores_i[psa_dat[, rsp_name]==0, j]
       # Calculate KW weights
       kw_tmp_i[, j] <- kw.wt(p_score.c = p_score_i_c[, j], p_score.s = p_score_i_s[,j],
-                             svy.wt = svy.wt, Large = F)$pswt
+                             svy.wt = svy.wt, large = F)$pswt
       # Calculate covariate balance
       psa_dat[psa_dat[, rsp_name]==1, "wt_kw.tmp"] <- kw_tmp_i[, j]
       smds_i[j] <- mean(abs(smd(psa_dat, wt = "wt_kw.tmp", rsp_name = rsp_name, covars = covars)))

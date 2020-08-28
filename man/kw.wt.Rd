@@ -5,7 +5,7 @@
 \title{Calculate KW pseudo-weights given propensity scores}
 \usage{
 kw.wt(p_score.c, p_score.s, svy.wt, h = NULL, krn = "triang",
-  Large = F, rm.s = F)
+  large = F, rm.s = F)
 }
 \arguments{
 \item{p_score.c}{Predicted propensity scores for the non-probability sample}
@@ -22,7 +22,7 @@ kw.wt(p_score.c, p_score.s, svy.wt, h = NULL, krn = "triang",
 "\code{dnorm}": standard normal density,
 "\code{dnorm_t}": truncated standard normal density on (-3, 3).}
 
-\item{Large}{The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.}
+\item{large}{The cohort size is so large that it has to be divided into pieces. Default is \code{FALSE}.}
 
 \item{rm.s}{Remove unmatched survey units or not. Default is \code{FALSE}.}
 }
