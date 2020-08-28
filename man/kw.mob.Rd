@@ -23,7 +23,7 @@ kw.mob(psa_dat, wt, rsp_name, formula, tune_maxdepth, covars, h = NULL,
 (see \code{glmtree()} in \code{partykit} package)}
 
 \item{covars}{A vector of covariate names for standardized mean differences
-(SMD; covariate balance) calculation (see \code{bal.tab()} in \code{cobalt} package)}
+(SMD; covariate balance) calculation}
 
 \item{h}{Bandwidth parameter
 (will be calculated corresponding to kernel function if not specified)}

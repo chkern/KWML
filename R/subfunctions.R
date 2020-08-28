@@ -1,27 +1,118 @@
+
+##############################################################################
+# x_bar_var is a function calculating weighted sample mean and variance      #
+# for the covariates (results are consistent with svymean in survey package) #
+# INPUT                                                                      #
+#  dat: a dataframe including all covariates                                 #
+#  wt:  sample weights                                                       #
+#  covars:  a vector of covariate names                                      #
+# OUPUT                                                                      #
+#  X_bar:    sample estimate of population mean                              #
+#  X_sigma2: sample estimate of population variance                          #
+##############################################################################
+
+x_bar_var = function(dat, wt, covars){
+  # Split covariates
+  catvars = names(dat[, covars])[sapply(dat[, covars], is.factor)]
+  numvars = names(dat[, covars])[!sapply(dat[, covars], is.factor)]
+
+  N_hat = sum(wt)
+  n = nrow(dat)
+  Xbar_hat_co = NULL
+  Xbar_hat_cat = NULL
+  var_Xhat_co = NULL
+  var_Xhat_cat = NULL
+
+  if (!identical(numvars, character(0))) {
+    # Create data frame for numeric covars
+    x_matrix_co = dat[, numvars, drop = F]
+    # Means and vars for numeric covars
+    p = ncol(x_matrix_co)
+    wt_matrix = matrix(rep(wt, p), n, p)
+    X_hat_co = apply(x_matrix_co*wt_matrix, 2, sum)
+    Xbar_hat_co = X_hat_co/N_hat
+    var_Xhat_co = c(apply(x_matrix_co, 2, var))
+  }
+
+  if (!identical(catvars, character(0))) {
+    # Categorize categorical covars and create data frame
+    formula = as.formula(paste("trt~", paste0(catvars, collapse = "+")))
+    x_matrix_cat = as.data.frame(model.matrix(formula,
+                                              data = dat,
+                                              contrasts.arg = lapply(dat[sapply(dat, is.factor)],
+                                                                     contrasts, contrasts = F))[,-1])
+    # Means and vars for categorical covars
+    p = ncol(x_matrix_cat)
+    wt_matrix = matrix(rep(wt, p), n, p)
+    X_hat_cat = apply(x_matrix_cat*wt_matrix, 2, sum)
+    Xbar_hat_cat = X_hat_cat/N_hat
+    Xbar_cat = c(apply(x_matrix_cat, 2, mean))
+    var_Xhat_cat = c(Xbar_cat*(1-Xbar_cat))
+  }
+
+  Xbar_hat = c(Xbar_hat_co, Xbar_hat_cat)
+  var_Xhat = c(var_Xhat_co, var_Xhat_cat)
+
+  return(list(X_bar = Xbar_hat, X_sigma2 = var_Xhat))
+}
+
+
+#############################################################################################
+# smd is a function to calculate SMD for two samples                                        #
+# INPUT                                                                                     #
+#  psa_dat: a dataframe including covariates to be compared in the two samples              #
+#           NOTE: categorical variables should have a format of factor!                     #
+#  wt:      a vector of weights for nonprobability sample and the survey sample.            #
+#           The order should be consistent with psa_dat                                     #
+#  rsp_name: a vector of an indicator for sample membership in the dataframe of psa_dat     #
+#           1 for nonprobabilty sample, 0 for survey sample                                 #
+#  covars:  a vector of covariate names                                                     #
+# OUTPUT                                                                                    #
+#  smd:     a vector of smd for all compared covariates                                     #
+#############################################################################################
+
+smd = function(psa_dat, wt, rsp_name, covars){
+  # separate datasets for nonprobability and survey samples
+  np_dat  = psa_dat[psa_dat[, rsp_name]==1,]
+  svy_dat = psa_dat[psa_dat[, rsp_name]==0,]
+  np_dat$trt = 1
+  svy_dat$trt = 0
+  # vectors of the weights for the two samples
+  pwt   = psa_dat[psa_dat[, rsp_name]==1, wt]
+  svywt = psa_dat[psa_dat[, rsp_name]==0, wt]
+  # Get pseudo-weighted nonprobability sample and sample weighted survey estimates of pop means & vars
+  np_x_est  = x_bar_var(dat = np_dat, wt = pwt, covars = covars)
+  svy_x_est = x_bar_var(dat = svy_dat, wt = svywt, covars = covars)
+  # Calculate smd for each covariate
+  smd = (np_x_est$X_bar-svy_x_est$X_bar)/sqrt((np_x_est$X_sigma2+ svy_x_est$X_sigma2)/2)
+  smd
+}
+
+
 ################################################################################
 # FUNCTION pop.gen is to generate a finite population                          #
 # INPUT:                                                                       #
 #     seed:       random seed that enables replication                         #
 #     N:          population size                                              #
 #     gamma:      regression coefficients for generating outcome y             #
-#     beta_star:  scaling factor for two-way interaction terms of covariates   # 
-#     beta_sstar: scaling factor for more complex interactions of covariates   # 
+#     beta_star:  scaling factor for two-way interaction terms of covariates   #
+#     beta_sstar: scaling factor for more complex interactions of covariates   #
 # OUTPUT:                                                                      #
 #     pop: a data frame pop including                                          #
-#       - covariates X1... X10, selected quadratic terms, interactions, and    #  
+#       - covariates X1... X10, selected quadratic terms, interactions, and    #
 #         higher order terms;                                                  #
 #       - covariates X1*...X4*, and X1**...X4** generated from X1...X4 ;       #
 #       - outcome variable y;                                                  #
 ################################################################################
 
-pop.gen = function(seed = 9762342, 
-                   N = 10000, 
-                   gamma = c(-2.5, 1, 1, 1, 1, .71, -.19, .26), 
+pop.gen = function(seed = 9762342,
+                   N = 10000,
+                   gamma = c(-2.5, 1, 1, 1, 1, .71, -.19, .26),
                    beta_star = c(0.5, 0.7, 0.5, 0.5, 0.5, 0.7, 0.7),
                    beta_sstar = rep(0.6, 7)){
     # Create the base covariates (V1...V10)
 	v_w = as.data.frame(matrix(rnorm(N*10), N, 10))
-	# Create covariates X1...X10 
+	# Create covariates X1...X10
 	names(v_w) = c(paste0(rep("v", 8), c(1:6, 8, 9), sep = ""), "w7", "w10")
 	v_w$w5 = (v_w$v1*0.16+v_w$v5*0.84)*1.171
 	v_w$w6 = (v_w$v2*0.67+v_w$v6*0.33)*1.353
@@ -35,7 +126,7 @@ pop.gen = function(seed = 9762342,
 	odds_y = exp(as.matrix(cbind(1, pop[,c(1:4, 8:10)]))%*%matrix(gamma, n.gamma, 1))
 	py = odds_y/(1+odds_y)
 	pop$y=as.numeric((runif(N)<py)); mean(pop$y)
-	# Generate non-linear and non-additive terms of X1...X10  
+	# Generate non-linear and non-additive terms of X1...X10
 	pop$w2_2 = pop$w2^2
 	pop$w4_2 = pop$w4^2
 	pop$w7_2 = pop$w7^2
@@ -52,7 +143,7 @@ pop.gen = function(seed = 9762342,
 	pop$w3_2_w5_2 = beta_sstar[3]*pop$w3^2*pop$w5^2
 	pop$w1_w2_w3  = beta_sstar[1]*pop$w1*pop$w2*pop$w3
 	pop$w4_w5_w7  = beta_sstar[4]*pop$w4*pop$w5*pop$w7
-	
+
 	# Generate X1*...X4* (categorized X1...X4)
 	pop$w1_c = cut(pop$w1, c(-5, -1, 0, 1, 6))
 	pop$w2_c = cut(pop$w2, c(-5, -1, 0, 1, 6))
@@ -63,7 +154,7 @@ pop.gen = function(seed = 9762342,
 	pop$w2_n = pop$w2+rnorm(N)+pop$w9/10
 	pop$w3_n = pop$w3+rnorm(N)+pop$w10/10
 	pop$w4_n = pop$w4+rnorm(N)+pop$y/2
-	pop	
+	pop
 } # End of pop.gen
 
 ##########################################################################################
@@ -81,7 +172,7 @@ pop.gen = function(seed = 9762342,
 mos.gen = function(pop, beta, alpha){
 	N = dim(pop)[1]
 	n.beta = length(beta)
-	# convert X1*...X4* to a matrix of dummy variables 
+	# convert X1*...X4* to a matrix of dummy variables
 	ds.m_9 = model.matrix(as.formula(paste("y~",paste(names(pop)[28:31],collapse="+"))), data = pop)
 	odds=matrix(0, N, 10)
     odds[,1]  = exp(as.matrix(cbind(1, pop[,c(1:7)]))%*%matrix(beta, n.beta, 1))
@@ -94,9 +185,9 @@ mos.gen = function(pop, beta, alpha){
     odds[,8]  = exp(as.matrix(cbind(1, pop[,c(1:7, 12:14, 15:18, 25:27)]))%*%matrix(beta[c(1:8, 3, 5, 8, 2, 3, 5, 6, 4, 2, 3)], n.beta+10, 1))
     odds[,9] = exp(ds.m_9%*%matrix(alpha, length(alpha), 1))
     odds[,10] = exp(as.matrix(cbind(1, pop[,c(32:35)]))%*%matrix(beta[1:5], 5, 1))
-    q_c = cbind(odds[,1]^0.3,   odds[,2]^0.25,  odds[,3]^0.25,  odds[,4]^0.27,  odds[,5]^0.25, 
+    q_c = cbind(odds[,1]^0.3,   odds[,2]^0.25,  odds[,3]^0.25,  odds[,4]^0.27,  odds[,5]^0.25,
                 odds[,6]^0.22,  odds[,7]^0.17,  odds[,8]^0.18,  odds[,9]^0.4,   odds[,10]^0.23)
-    q_s = cbind(odds[,1]^-0.2,  odds[,2]^-0.2,  odds[,3]^-0.2,  odds[,4]^-0.17, odds[,5]^-0.17, 
+    q_s = cbind(odds[,1]^-0.2,  odds[,2]^-0.2,  odds[,3]^-0.2,  odds[,4]^-0.17, odds[,5]^-0.17,
                 odds[,6]^-0.15, odds[,7]^-0.13, odds[,8]^-0.11, odds[,9]^-0.26, odds[,10]^-0.15)
     return(list(q_c = q_c,
                 q_s = q_s))
@@ -119,7 +210,7 @@ mos.gen = function(pop, beta, alpha){
 #                                                                                                   #
 # OUTPUT:                                                                                           #
 #     returns a dataframe of selected samp, including variables of                                  #
-#      (ID = ID, psu = psu, gender = gender, age = age, urb= urb,                                   #     
+#      (ID = ID, psu = psu, gender = gender, age = age, urb= urb,                                   #
 #       hh_inc = hh_inc, race_eth = race_eth, y = fnt.y, weights)                                   #
 #####################################################################################################
 
@@ -134,10 +225,10 @@ samp.slct = function(seed, fnt.pop, n, Cluster=NULL, Clt.samp=NULL, dsgn, size =
 	}
 	# two-stage cluster sampling design (informative design at the second stage)
 	if(dsgn == "srs-pps"){
-	  
+
 	  # calcualte the size for the second stage
-	  fnt.pop$x = size              
-	  
+	  fnt.pop$x = size
+
 	  #-- first stage: select clusters by srs
 	  # Clt.samp = 25
 	  # n = 1000
@@ -145,7 +236,7 @@ samp.slct = function(seed, fnt.pop, n, Cluster=NULL, Clt.samp=NULL, dsgn, size =
 	  index.psuI = sort(index.psuI)  #sort selected psus
 	  sample.I = fnt.pop[fnt.pop$psu %in% index.psuI,]
 	  sample.I$wt.I = Cluster/Clt.samp
-	  
+
 	  #-- second stage: select subj.samp within selected psus by pps to p^a (or (1-p)^a)
 	  samp=NULL
 	  for (i in 1: Clt.samp){
@@ -157,10 +248,10 @@ samp.slct = function(seed, fnt.pop, n, Cluster=NULL, Clt.samp=NULL, dsgn, size =
 	  }#sum(samp.cntl$wt);nrow(fnt.cntl)
 	}
 	if(dsgn == "pps-pps"){
-	  
+
 	  # calcualte the size for the second stage
-	  fnt.pop$x = size               
-	  
+	  fnt.pop$x = size
+
 	  #-- first stage: select clusters by pps to size aggrated level p^a(or (1-p)^a)
 	  # Clt.samp = 25
 	  # n = 1000
@@ -168,7 +259,7 @@ samp.slct = function(seed, fnt.pop, n, Cluster=NULL, Clt.samp=NULL, dsgn, size =
 	  index.psuI = index.psuI[order(index.psuI[,1]),]  #sort selected psus
 	  sample.I = fnt.pop[fnt.pop$psu %in% index.psuI[,1],]
 	  sample.I$wt.I = rep(index.psuI[,'wt'],each=size.Cluster)
-	  
+
 	  #-- second stage: select subj.samp within selected psus by pps to p^a (or (1-p)^a)
 	  samp=NULL
 	  for (i in 1: Clt.samp){
@@ -180,7 +271,7 @@ samp.slct = function(seed, fnt.pop, n, Cluster=NULL, Clt.samp=NULL, dsgn, size =
 	  }#sum(samp.cntl$wt);nrow(fnt.cntl)
 	}
 	rownames(samp) = as.character(1:dim(samp)[1])
-  return(samp)      
+  return(samp)
 }
 
 
@@ -199,18 +290,112 @@ sam.pps<-function(popul,Msize, n){
   	sam.pps.data=as.data.frame(popul[pps.samID,])
   	names(sam.pps.data) = names(popul)
   }else{sam.pps.data=popul[pps.samID,]}
-  sam.pps.data$wt=sum(Msize)/n/Msize[pps.samID]               
+  sam.pps.data$wt=sum(Msize)/n/Msize[pps.samID]
   return(sam.pps = sam.pps.data)
 }
 
 
+#####################################################################################################################
+## cmb_dat is a function for data preparation including removing missing values in cohort and survey sample,       ##
+## combining the two samples                                                                                       ##
+## INPUT:  chtsamp - cohort (a data frame including covariates of the propensity score model)                      ##
+##         svysamp - survey sample (a data frame including weight variable and                                     ##
+##                                  covariates of the propensity score model)                                      ##
+##         svy_wt  - variable name of the survey weight (should be included in svysamp)                            ##
+##         Formula - propensity score model, with the format of trt~covariate1+covariate2+...                      ##
+## OUTPUT: cmb_dat - combined sample of non-missing cohort and survey sample units including varibles              ##
+##                   covariates in propensity score model                                                          ##
+##                   "trt" indicator of data source (1 for cohort units, 0 for survey sample units)                ##
+##                   "wt" weight varaible (1 for cohort units, survey sample weights)                              ##
+##         chtsamp - complete  sample (in terms of covariates)                                                     ##
+##         svysamp - complete survey sample (in terms of covariates)                                               ##
+## WARNINGS:                                                                                                       ##
+##         1, missing values in covariates are not allowed. Records with missing values in the cohort are removed. ##
+##         2, missing values in covariates are not allowed. Records with missing values in the survey sample       ##
+##         are removed. The complete cases are reweighted. Missing completely at random is assumed.                ##
+#####################################################################################################################
+
+cmb_dat = function(chtsamp,svysamp,svy_wt, Formula){
+  # Get names of the response variable and predictors for the propensity score estimation model
+  Fml_names = all.vars(Formula)
+  # Name of the response variable
+  rsp_name = Fml_names[1]
+  # Name of the predictors
+  mtch_var = Fml_names[-1]
+
+  # Remove incomplete records in the cohort, if there are any.
+  chtsamp_sub = as.data.frame(chtsamp[, mtch_var])
+  if(sum(is.na(chtsamp_sub))>0){
+    cmplt.indx = complete.cases(chtsamp_sub)
+    chtsamp_sub = chtsamp_sub[cmplt.indx, ]
+    chtsamp = chtsamp[cmplt.indx,]
+    warning("Missing values in covariates are not allowed. Records with missing values in the cohort are removed.")
+  }
+  # Remove incomplete survey sample, if there are any.
+  svysamp_sub = as.data.frame(svysamp[, mtch_var])
+  svy_wt.vec = c(svysamp[, svy_wt])
+  if(sum(is.na(svysamp_sub))>0){
+    cmplt.indx = complete.cases(svysamp_sub)
+    svysamp_sub = svysamp_sub[cmplt.indx, ]
+    svy_wt.vec = sum(svysamp[, svy_wt])/sum(svy_wt.vec[cmplt.indx])*svy_wt.vec[cmplt.indx]
+    warning("Missing values in covariates are not allowed. Records with missing values in the survey sample are removed.
+            The complete cases are reweighted. Missing completely at random is assumed.")
+  }# end removing incomplete records
+  # size of cohort (complete)
+  m = dim(chtsamp_sub)[1]
+  # size of survey sample (complete)
+  n = dim(svysamp_sub)[1]
+  # Combine the two complete samples
+  # Set outcome variable for propensity score model
+  chtsamp_sub[,rsp_name] = 1                 # z=1 for cohort sample
+  svysamp_sub[,rsp_name] = 0                 # z=0 for survey sample
+  names(chtsamp_sub) = c(mtch_var, rsp_name) # unify the variable names in cohort and survey sample
+  names(svysamp_sub) = c(mtch_var, rsp_name)
+  cmb_dat = rbind(chtsamp_sub, svysamp_sub)  # combine the two samples
+  cmb_dat$wt = c(rep(1, m), svysamp[, svy_wt])
+  return(list(cmb_dat = cmb_dat,
+              chtsamp = chtsamp,
+              svysamp = svysamp
+  )
+  )
+  }
 
 
+#####################################################################################################################
+## cmb_dat1 is a function combining the cohort and survey sample                                                   ##
+## INPUT:  chtsamp - cohort (a data frame including covariates of the propensity score model)                      ##
+##         svysamp - survey sample (a data frame including weight variable and                                     ##
+##                                  covariates of the propensity score model)                                      ##
+##         svy_wt  - variable name of the survey weight (should be included in svysamp)                            ##
+##         Formula - propensity score model, with the format of trt~covariate1+covariate2+...                      ##
+## OUTPUT: cmb_dat - combined sample of non-missing cohort and survey sample units including varibles              ##
+##                   covariates in propensity score model                                                          ##
+##                   "trt" indicator of data source (1 for cohort units, 0 for survey sample units)                ##
+##                   "wt" weight varaible (1 for cohort units, survey sample weights)                              ##
+#####################################################################################################################
 
+cmb_dat1 = function(chtsamp,svysamp,svy_wt, Formula){
+  # Get names of the response variable and predictors for the propensity score estimation model
+  Fml_names = all.vars(Formula)
+  # Name of the response variable
+  rsp_name = Fml_names[1]
+  # Name of the predictors
+  mtch_var = Fml_names[-1]
 
-
-
-
-
-
+  chtsamp_sub = as.data.frame(chtsamp[, mtch_var])
+  svysamp_sub = as.data.frame(svysamp[, mtch_var])
+  svy_wt.vec = c(svysamp[, svy_wt])
+  m = dim(chtsamp_sub)[1]
+  # size of survey sample (complete)
+  n = dim(svysamp_sub)[1]
+  # Combine the two complete samples
+  # Set outcome variable for propensity score model
+  chtsamp_sub[,rsp_name] = 1                 # z=1 for cohort sample
+  svysamp_sub[,rsp_name] = 0                 # z=0 for survey sample
+  names(chtsamp_sub) = c(mtch_var, rsp_name) # unify the variable names in cohort and survey sample
+  names(svysamp_sub) = c(mtch_var, rsp_name)
+  cmb_dat = rbind(chtsamp_sub, svysamp_sub)  # combine the two samples
+  cmb_dat$wt = c(rep(1, m), svy_wt.vec)
+  cmb_dat
+}
 

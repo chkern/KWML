@@ -203,7 +203,7 @@ kw.lg = function(psa_dat, wt, rsp_name, formula,
 #' @param tune_maxdepth A vector of values for the tuning parameter maxdepth
 #' (see \code{glmtree()} in \code{partykit} package)
 #' @param covars A vector of covariate names for standardized mean differences
-#' (SMD; covariate balance) calculation (see \code{bal.tab()} in \code{cobalt} package)
+#' (SMD; covariate balance) calculation
 #' @param h Bandwidth parameter
 #' (will be calculated corresponding to kernel function if not specified)
 #' @param krn Kernel function.
@@ -261,8 +261,7 @@ kw.mob = function(psa_dat, wt, rsp_name, formula, tune_maxdepth, covars,
                         svy.wt = svy.wt, Large = F)$pswt
     # Calculate covariate balance
     psa_dat[psa_dat[, rsp_name]==1, "wt_kw.tmp"] <- kw_tmp[,i]
-    smds[i] <- mean(abs(cobalt::bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat$wt_kw.tmp,
-                                        s.d.denom = "pooled", binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
+    smds[i] <- mean(abs(smd(psa_dat, wt = "wt_kw.tmp", rsp_name = rsp_name, covars = covars)))
   }
   best <- which.min(smds)
   return(list(pswt = kw_tmp, smds = smds, best = best, p_score_c = p_score_c.tmp, p_score_s = p_score_s.tmp))
@@ -283,7 +282,7 @@ kw.mob = function(psa_dat, wt, rsp_name, formula, tune_maxdepth, covars,
 #' @param tune_mincriterion A vector of values for the tuning parameter mincriterion
 #' (see \code{cforest()} in \code{partykit} package)
 #' @param covars A vector of covariate names for standardized mean differences
-#' (SMD; covariate balance) calculation (see \code{bal.tab()} in \code{cobalt} package)
+#' (SMD; covariate balance) calculation
 #' @param h Bandwidth parameter
 #' (will be calculated corresponding to kernel function if not specified)
 #' @param krn Kernel function.
@@ -338,8 +337,7 @@ kw.crf = function(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
                         svy.wt = svy.wt, Large = F)$pswt
     # Calculate covariate balance
     psa_dat[psa_dat[, rsp_name]==1, "wt_kw.tmp"] <- kw_tmp[,i]
-    smds[i] <- mean(abs(cobalt::bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat$wt_kw.tmp,
-                                        s.d.denom = "pooled", binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
+    smds[i] <- mean(abs(smd(psa_dat, wt = "wt_kw.tmp", rsp_name = rsp_name, covars = covars)))
   }
   best <- which.min(smds)
   return(list(pswt = kw_tmp, smds = smds, best = best, p_score_c = p_score_c.tmp, p_score_s = p_score_s.tmp))
@@ -362,7 +360,7 @@ kw.crf = function(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
 #' @param tune_ntree A vector of values for the tuning parameter \code{n.trees}
 #' (see \code{gbm()} in \code{gbm} package)
 #' @param covars A vector of covariate names for standardized mean differences
-#' (SMD; covariate balance) calculation (see \code{bal.tab()} in \code{cobalt} package)
+#' (SMD; covariate balance) calculation
 #' @param h Bandwidth parameter
 #' (will be calculated corresponding to kernel function if not specified)
 #' @param krn Kernel function.
@@ -430,9 +428,8 @@ kw.gbm = function(psa_dat, wt, rsp_name, formula, tune_idepth, tune_ntree, covar
                              svy.wt = svy.wt, Large = F)$pswt
       # Calculate covariate balance
       psa_dat[psa_dat[, rsp_name]==1, "wt_kw.tmp"] <- kw_tmp_i[, j]
-      smds_i[j] <- mean(abs(cobalt::bal.tab(psa_dat[, covars], treat = psa_dat[, rsp_name], weights = psa_dat$wt_kw.tmp,
-                                            s.d.denom = "pooled", binary = "std", method = "weighting")$Balance[, "Diff.Adj"]))
-    }
+      smds_i[j] <- mean(abs(smd(psa_dat, wt = "wt_kw.tmp", rsp_name = rsp_name, covars = covars)))
+      }
     # Select best KW weights of current iteration
     best <- which.min(smds_i)
     p_score_c.tmp[,i] <- p_score_i_c[, best]
@@ -444,108 +441,6 @@ kw.gbm = function(psa_dat, wt, rsp_name, formula, tune_idepth, tune_ntree, covar
   return(list(pswt = kw_tmp_o, smds = smds_o, best = best_o, p_score_c = p_score_c.tmp, p_score_s = p_score_s.tmp))
 }
 
-#####################################################################################################################
-## cmb_dat is a function for data preparation including removing missing values in cohort and survey sample,       ##
-## combining the two samples                                                                                       ##
-## INPUT:  chtsamp - cohort (a data frame including covariates of the propensity score model)                      ##
-##         svysamp - survey sample (a data frame including weight variable and                                     ##
-##                                  covariates of the propensity score model)                                      ##
-##         svy_wt  - variable name of the survey weight (should be included in svysamp)                            ##
-##         Formula - propensity score model, with the format of trt~covariate1+covariate2+...                      ##
-## OUTPUT: cmb_dat - combined sample of non-missing cohort and survey sample units including varibles              ##
-##                   covariates in propensity score model                                                          ##
-##                   "trt" indicator of data source (1 for cohort units, 0 for survey sample units)                ##
-##                   "wt" weight varaible (1 for cohort units, survey sample weights)                              ##
-##         chtsamp - complete  sample (in terms of covariates)                                                     ##
-##         svysamp - complete survey sample (in terms of covariates)                                               ##
-## WARNINGS:                                                                                                       ##
-##         1, missing values in covariates are not allowed. Records with missing values in the cohort are removed. ##
-##         2, missing values in covariates are not allowed. Records with missing values in the survey sample       ##
-##         are removed. The complete cases are reweighted. Missing completely at random is assumed.                ##
-#####################################################################################################################
-
-cmb_dat = function(chtsamp,svysamp,svy_wt, Formula){
-  # Get names of the response variable and predictors for the propensity score estimation model
-  Fml_names = all.vars(Formula)
-  # Name of the response variable
-  rsp_name = Fml_names[1]
-  # Name of the predictors
-  mtch_var = Fml_names[-1]
-
-  # Remove incomplete records in the cohort, if there are any.
-  chtsamp_sub = as.data.frame(chtsamp[, mtch_var])
-  if(sum(is.na(chtsamp_sub))>0){
-    cmplt.indx = complete.cases(chtsamp_sub)
-    chtsamp_sub = chtsamp_sub[cmplt.indx, ]
-    chtsamp = chtsamp[cmplt.indx,]
-    warning("Missing values in covariates are not allowed. Records with missing values in the cohort are removed.")
-  }
-  # Remove incomplete survey sample, if there are any.
-  svysamp_sub = as.data.frame(svysamp[, mtch_var])
-  svy_wt.vec = c(svysamp[, svy_wt])
-  if(sum(is.na(svysamp_sub))>0){
-    cmplt.indx = complete.cases(svysamp_sub)
-    svysamp_sub = svysamp_sub[cmplt.indx, ]
-    svy_wt.vec = sum(svysamp[, svy_wt])/sum(svy_wt.vec[cmplt.indx])*svy_wt.vec[cmplt.indx]
-    warning("Missing values in covariates are not allowed. Records with missing values in the survey sample are removed.
-            The complete cases are reweighted. Missing completely at random is assumed.")
-  }# end removing incomplete records
-  # size of cohort (complete)
-  m = dim(chtsamp_sub)[1]
-  # size of survey sample (complete)
-  n = dim(svysamp_sub)[1]
-  # Combine the two complete samples
-  # Set outcome variable for propensity score model
-  chtsamp_sub[,rsp_name] = 1                 # z=1 for cohort sample
-  svysamp_sub[,rsp_name] = 0                 # z=0 for survey sample
-  names(chtsamp_sub) = c(mtch_var, rsp_name) # unify the variable names in cohort and survey sample
-  names(svysamp_sub) = c(mtch_var, rsp_name)
-  cmb_dat = rbind(chtsamp_sub, svysamp_sub)  # combine the two samples
-  cmb_dat$wt = c(rep(1, m), svysamp[, svy_wt])
-  return(list(cmb_dat = cmb_dat,
-              chtsamp = chtsamp,
-              svysamp = svysamp
-              )
-         )
-}
-
-#####################################################################################################################
-## cmb_dat1 is a function combining the cohort and survey sample                                                   ##
-## INPUT:  chtsamp - cohort (a data frame including covariates of the propensity score model)                      ##
-##         svysamp - survey sample (a data frame including weight variable and                                     ##
-##                                  covariates of the propensity score model)                                      ##
-##         svy_wt  - variable name of the survey weight (should be included in svysamp)                            ##
-##         Formula - propensity score model, with the format of trt~covariate1+covariate2+...                      ##
-## OUTPUT: cmb_dat - combined sample of non-missing cohort and survey sample units including varibles              ##
-##                   covariates in propensity score model                                                          ##
-##                   "trt" indicator of data source (1 for cohort units, 0 for survey sample units)                ##
-##                   "wt" weight varaible (1 for cohort units, survey sample weights)                              ##
-#####################################################################################################################
-
-cmb_dat1 = function(chtsamp,svysamp,svy_wt, Formula){
-  # Get names of the response variable and predictors for the propensity score estimation model
-  Fml_names = all.vars(Formula)
-  # Name of the response variable
-  rsp_name = Fml_names[1]
-  # Name of the predictors
-  mtch_var = Fml_names[-1]
-
-  chtsamp_sub = as.data.frame(chtsamp[, mtch_var])
-  svysamp_sub = as.data.frame(svysamp[, mtch_var])
-  svy_wt.vec = c(svysamp[, svy_wt])
-  m = dim(chtsamp_sub)[1]
-  # size of survey sample (complete)
-  n = dim(svysamp_sub)[1]
-  # Combine the two complete samples
-  # Set outcome variable for propensity score model
-  chtsamp_sub[,rsp_name] = 1                 # z=1 for cohort sample
-  svysamp_sub[,rsp_name] = 0                 # z=0 for survey sample
-  names(chtsamp_sub) = c(mtch_var, rsp_name) # unify the variable names in cohort and survey sample
-  names(svysamp_sub) = c(mtch_var, rsp_name)
-  cmb_dat = rbind(chtsamp_sub, svysamp_sub)  # combine the two samples
-  cmb_dat$wt = c(rep(1, m), svy_wt.vec)
-  cmb_dat
-}
 
 ### Kernels ##
 # triangular density on (-3, 3)

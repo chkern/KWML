@@ -26,7 +26,7 @@ kw.gbm(psa_dat, wt, rsp_name, formula, tune_idepth, tune_ntree, covars,
 (see \code{gbm()} in \code{gbm} package)}
 
 \item{covars}{A vector of covariate names for standardized mean differences
-(SMD; covariate balance) calculation (see \code{bal.tab()} in \code{cobalt} package)}
+(SMD; covariate balance) calculation}
 
 \item{h}{Bandwidth parameter
 (will be calculated corresponding to kernel function if not specified)}
