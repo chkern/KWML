@@ -9,3 +9,4 @@ matrix:
   include:
     - r: 3.6
     - r: release
+    - os: osx
