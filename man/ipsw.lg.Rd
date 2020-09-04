@@ -2,7 +2,7 @@
 % Please edit documentation in R/weighting_functions.R
 \name{ipsw.lg}
 \alias{ipsw.lg}
-\title{Calculate pseudo-weights using IPSW}
+\title{Calculate pseudo-weights using inverse propensity score weighting (IPSW)}
 \usage{
 ipsw.lg(psa_dat, wt, rsp_name, formula)
 }

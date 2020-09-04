@@ -1,4 +1,4 @@
-#' Calculate pseudo-weights using IPSW
+#' Calculate pseudo-weights using inverse propensity score weighting (IPSW)
 #'
 #' This function computes IPSW pseudo-weights using logistic regression to
 #' predict propensity scores.
