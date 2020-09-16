@@ -1,7 +1,7 @@
 # KW-ML for R
 
 <!-- badges: start -->
-[![Travis build status](https://travis-ci.org/chkern/KWML.svg?branch=master)](https://travis-ci.org/chkern/KWML)
+[![Travis build status](https://travis-ci.com/chkern/KWML.svg?branch=master)](https://travis-ci.com/chkern/KWML)
 <!-- badges: end -->
 
 R package for "Boosted Kernel Weighting – Using Statistical Learning to Improve Inference from Nonprobability Samples"
