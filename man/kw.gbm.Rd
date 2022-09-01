@@ -4,8 +4,19 @@
 \alias{kw.gbm}
 \title{Calculate KW-GBM pseudo-weights}
 \usage{
-kw.gbm(psa_dat, wt, rsp_name, formula, tune_idepth, tune_ntree, covars,
-  h = NULL, krn = "triang", large = F, rm.s = F)
+kw.gbm(
+  psa_dat,
+  wt,
+  rsp_name,
+  formula,
+  tune_idepth,
+  tune_ntree,
+  covars,
+  h = NULL,
+  krn = "triang",
+  large = F,
+  rm.s = F
+)
 }
 \arguments{
 \item{psa_dat}{Dataframe of the combined non-probability and probability sample}

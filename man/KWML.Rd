@@ -3,7 +3,6 @@
 \docType{package}
 \name{KWML}
 \alias{KWML}
-\alias{KWML-package}
 \title{KWML: Boosted Kernel Weighting for R}
 \description{
 R package for "Boosted Kernel Weighting - Using Statistical Learning to Improve Inference from Nonprobability Samples"

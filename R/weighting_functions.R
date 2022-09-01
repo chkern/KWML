@@ -56,7 +56,7 @@ ipsw.lg = function(psa_dat, wt, rsp_name, formula){
 #' \code{h}: Bandwidth
 #' @export
 
-kw.wt = function(p_score.c, p_score.s, svy.wt, h = NULL, krn = "triang", large = F, rm.s = F){
+kw.wt = function(p_score.c, p_score.s, svy.wt, h = NULL, mtch_v = NULL, krn = "triang", large = F, rm.s = F){
   # get the name of kernel function
   # calculate bandwidth according to the kernel function
   #triangular density

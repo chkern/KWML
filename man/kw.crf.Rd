@@ -4,8 +4,18 @@
 \alias{kw.crf}
 \title{Calculate KW-CRF pseudo-weights}
 \usage{
-kw.crf(psa_dat, wt, rsp_name, formula, tune_mincriterion, covars,
-  h = NULL, krn = "triang", large = F, rm.s = F)
+kw.crf(
+  psa_dat,
+  wt,
+  rsp_name,
+  formula,
+  tune_mincriterion,
+  covars,
+  h = NULL,
+  krn = "triang",
+  large = F,
+  rm.s = F
+)
 }
 \arguments{
 \item{psa_dat}{Dataframe of the combined non-probability and probability sample}

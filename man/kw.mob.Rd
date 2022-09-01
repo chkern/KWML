@@ -4,8 +4,18 @@
 \alias{kw.mob}
 \title{Calculate KW-MOB pseudo-weights}
 \usage{
-kw.mob(psa_dat, wt, rsp_name, formula, tune_maxdepth, covars, h = NULL,
-  krn = "triang", large = F, rm.s = F)
+kw.mob(
+  psa_dat,
+  wt,
+  rsp_name,
+  formula,
+  tune_maxdepth,
+  covars,
+  h = NULL,
+  krn = "triang",
+  large = F,
+  rm.s = F
+)
 }
 \arguments{
 \item{psa_dat}{Dataframe of the combined non-probability and probability sample}

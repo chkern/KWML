@@ -4,8 +4,16 @@
 \alias{kw.lg}
 \title{Calculate KW-LG pseudo-weights}
 \usage{
-kw.lg(psa_dat, wt, rsp_name, formula, h = NULL, krn = "triang",
-  large = F, rm.s = F)
+kw.lg(
+  psa_dat,
+  wt,
+  rsp_name,
+  formula,
+  h = NULL,
+  krn = "triang",
+  large = F,
+  rm.s = F
+)
 }
 \arguments{
 \item{psa_dat}{Dataframe of the combined non-probability and probability sample}
